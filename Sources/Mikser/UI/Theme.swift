@@ -330,23 +330,26 @@ struct DeviceMenu: View {
                 }
             }
         } label: {
-            HStack(spacing: 8) {
-                Image(systemName: symbol)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Theme.accent)
-                    .frame(width: 18)
+            ZStack {
                 Text(label)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                Spacer(minLength: 4)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 34)
+
+                HStack {
+                    Image(systemName: symbol)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.accent)
+                        .frame(width: 18)
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 12)
             }
-            .padding(.leading, 16)
-            .padding(.trailing, 12)
             .frame(width: Layout.deviceWidth, height: 34)
         }
         .menuStyle(.borderlessButton)
