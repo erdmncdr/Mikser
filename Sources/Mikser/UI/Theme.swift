@@ -352,15 +352,15 @@ struct DeviceMenu: View {
                         .foregroundStyle(Theme.accent)
                         .frame(width: 18)
                     Text(label)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: label.count > 18 ? 12 : 13, weight: .medium))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.78)
                         .truncationMode(.middle)
                         .layoutPriority(1)
                 }
-                .padding(.leading, 14)
-                .padding(.trailing, 32)
+                .padding(.leading, 10)
+                .padding(.trailing, 26)
                 .frame(width: Layout.deviceWidth)
 
                 HStack {
