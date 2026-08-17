@@ -159,7 +159,7 @@ final class MixerEngine {
     /// It deliberately avoids touching Core Audio, UserDefaults, or process lists.
     private func loadPreviewData() {
         let speakers = AudioDevice(
-            id: 100, uid: "preview.studio-speakers", name: "Studio Speakers",
+            id: 100, uid: "preview.studio-speakers", name: "MacBook Pro Speakers",
             outputChannels: 2, inputChannels: 0, kind: .other
         )
         let headphones = AudioDevice(
@@ -167,7 +167,7 @@ final class MixerEngine {
             outputChannels: 2, inputChannels: 0, kind: .headphones
         )
         let microphone = AudioDevice(
-            id: 102, uid: "preview.microphone", name: "Studio Microphone",
+            id: 102, uid: "preview.microphone", name: "MacBook Pro Microphone",
             outputChannels: 0, inputChannels: 1, kind: .microphone
         )
 

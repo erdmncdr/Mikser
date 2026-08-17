@@ -355,9 +355,13 @@ struct DeviceMenu: View {
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.88)
+                        .minimumScaleFactor(0.78)
                         .truncationMode(.middle)
+                        .layoutPriority(1)
                 }
+                .padding(.leading, 14)
+                .padding(.trailing, 32)
+                .frame(width: Layout.deviceWidth)
 
                 HStack {
                     Spacer(minLength: 0)
