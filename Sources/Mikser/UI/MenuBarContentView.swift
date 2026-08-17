@@ -113,14 +113,14 @@ struct MenuBarContentView: View {
             Button("Quit Mikser") { NSApplication.shared.terminate(nil) }
         } label: {
             Image(systemName: "gearshape.fill")
-                .font(.system(size: 17, weight: .semibold))
-                .frame(width: 32, height: 32)
+                .font(.system(size: 20, weight: .semibold))
+                .frame(width: 30, height: 30)
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .tint(Theme.accent)
-        .frame(width: 32, height: 32)
-        .background(Circle().fill(Theme.controlBackground))
+        .frame(width: 30, height: 30)
+        .help("Settings")
     }
 
     // MARK: System
@@ -129,7 +129,7 @@ struct MenuBarContentView: View {
         VStack(alignment: .leading, spacing: 0) {
             ColumnHeader(
                 title: "System", deviceColumnTitle: "Device",
-                isExpanded: systemExpanded
+                isExpanded: systemExpanded, showsBoost: false
             ) {
                 withAnimation(.easeOut(duration: 0.15)) { systemExpanded.toggle() }
             }
@@ -307,21 +307,29 @@ struct MenuBarContentView: View {
                     }
                 }
             } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "star.fill").font(.system(size: 12))
-                    Text("Add Application").font(.system(size: 13, weight: .semibold))
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 9, weight: .bold))
+                HStack(spacing: 8) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Theme.accent)
+                    Text("Add Application")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.primary)
                 }
-                .foregroundStyle(.primary)
-                .padding(.horizontal, 12)
+                .padding(.leading, 13)
+                .padding(.trailing, 10)
                 .frame(height: 34)
             }
             .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
+            .menuIndicator(.visible)
             .frame(height: 34)
-            .background(Capsule().fill(Theme.controlBackground))
-            .overlay(Capsule().stroke(Theme.controlBorder, lineWidth: 1))
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Theme.sectionBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(Theme.sectionBorder, lineWidth: 1)
+            )
             .fixedSize(horizontal: true, vertical: false)
             .help("A favorite remains listed even when it is not playing audio")
 
@@ -338,8 +346,6 @@ struct MenuBarContentView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "eye.slash.fill")
                         Text("Hidden \(engine.hiddenApplications.count)")
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 9, weight: .bold))
                     }
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.secondary)
@@ -347,10 +353,16 @@ struct MenuBarContentView: View {
                     .frame(height: 34)
                 }
                 .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
+                .menuIndicator(.visible)
                 .frame(height: 34)
-                .background(Capsule().fill(Theme.controlBackground))
-                .overlay(Capsule().stroke(Theme.controlBorder, lineWidth: 1))
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Theme.sectionBackground)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Theme.sectionBorder, lineWidth: 1)
+                )
                 .fixedSize(horizontal: true, vertical: false)
             }
         }

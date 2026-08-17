@@ -257,6 +257,7 @@ struct ColumnHeader: View {
     let title: String
     let deviceColumnTitle: String
     let isExpanded: Bool
+    var showsBoost = true
     let toggle: () -> Void
 
     var body: some View {
@@ -273,7 +274,11 @@ struct ColumnHeader: View {
             // The flexible area is the exact counterpart of the row's
             // mute + slider + percentage block.
             columnLabel("Volume").frame(maxWidth: .infinity)
-            columnLabel("Boost").frame(width: Layout.boostColumnWidth)
+            if showsBoost {
+                columnLabel("Boost").frame(width: Layout.boostColumnWidth)
+            } else {
+                Color.clear.frame(width: Layout.boostColumnWidth, height: 1)
+            }
             columnLabel(deviceColumnTitle).frame(width: Layout.deviceWidth)
             columnLabel("FX").frame(width: Layout.fxWidth)
         }
@@ -340,7 +345,8 @@ struct DeviceMenu: View {
                     .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 11)
+            .padding(.leading, 16)
+            .padding(.trailing, 12)
             .frame(width: Layout.deviceWidth, height: 34)
         }
         .menuStyle(.borderlessButton)
