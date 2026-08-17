@@ -317,10 +317,6 @@ struct DeviceMenu: View {
             : "hifispeaker.fill")
     }
 
-    private var centersLabel: Bool {
-        allowsSystemDefault && selectedUID == nil
-    }
-
     var body: some View {
         Menu {
             if allowsSystemDefault {
@@ -349,48 +345,27 @@ struct DeviceMenu: View {
                 .stroke(Theme.controlBorder, lineWidth: 1)
         )
         .overlay {
-            Group {
-                if centersLabel {
-                    ZStack {
-                        HStack(spacing: 8) {
-                            Image(systemName: symbol)
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(Theme.accent)
-                                .frame(width: 18)
-                            Text(label)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(.primary)
-                                .lineLimit(1)
-                        }
-                        .padding(.horizontal, 28)
-
-                        HStack {
-                            Spacer(minLength: 0)
-                            Image(systemName: "chevron.up.chevron.down")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 12)
-                    }
-                } else {
-                    HStack(spacing: 8) {
-                        Image(systemName: symbol)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Theme.accent)
-                            .frame(width: 18)
-                        Text(label)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.leading, 16)
-                    .padding(.trailing, 12)
+            ZStack {
+                HStack(spacing: 8) {
+                    Image(systemName: symbol)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.accent)
+                        .frame(width: 18)
+                    Text(label)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.88)
+                        .truncationMode(.middle)
                 }
+
+                HStack {
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 12)
             }
             .allowsHitTesting(false)
         }
