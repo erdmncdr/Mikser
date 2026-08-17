@@ -121,7 +121,7 @@ struct MenuBarContentView: View {
                 Divider()
             }
             Button("Check for Updates…") {
-                (NSApplication.shared.delegate as? AppDelegate)?.checkForUpdates()
+                UpdateController.shared.checkForUpdates()
             }
             Divider()
             Button("Reset All Settings") { engine.resetAll() }
