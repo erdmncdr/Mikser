@@ -41,6 +41,7 @@ enum Layout {
     static let panelWidth: CGFloat = 730
     static let rowSpacing: CGFloat = 8
     static let rowVerticalPadding: CGFloat = 8
+    static var standardRowHeight: CGFloat { 34 + rowVerticalPadding * 2 }
 
     static let starWidth: CGFloat = 20
     static let meterWidth: CGFloat = 4

@@ -6,11 +6,12 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Measures the content's natural height and carries it upward.
-private struct ContentHeightKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
+/// Measures each application row independently. Keeping the identifier with the
+/// height lets the panel total only the rows that are still visible.
+private struct AppRowHeightsKey: PreferenceKey {
+    static let defaultValue: [String: CGFloat] = [:]
+    static func reduce(value: inout [String: CGFloat], nextValue: () -> [String: CGFloat]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, latest in latest })
     }
 }
 
@@ -20,10 +21,9 @@ struct MenuBarContentView: View {
     @AppStorage("mikser.systemExpanded") private var systemExpanded = true
     @AppStorage("mikser.applicationsExpanded") private var applicationsExpanded = true
 
-    /// A ScrollView has no natural height of its own, so in a container that sizes
-    /// itself to its content — such as the menu bar panel — it collapses to zero.
-    /// The content is measured and the height applied by hand.
-    @State private var listHeight: CGFloat = 0
+    /// A ScrollView has no natural height of its own. Row heights are retained by
+    /// application ID so hiding or restoring a row updates the total immediately.
+    @State private var appRowHeights: [String: CGFloat] = [:]
     @State private var effectsDraft: Double?
 
     // Details left open are remembered across sessions. @AppStorage cannot hold a
@@ -40,6 +40,14 @@ struct MenuBarContentView: View {
 
     private var visibleAppIDs: [String] {
         engine.visibleApps.map(\.id)
+    }
+
+    private var visibleAppsHeight: CGFloat {
+        let rows = visibleAppIDs.reduce(CGFloat.zero) { total, appID in
+            total + (appRowHeights[appID] ?? Layout.standardRowHeight)
+        }
+        let gaps = CGFloat(max(visibleAppIDs.count - 1, 0))
+        return rows + gaps
     }
 
     private let maximumListHeight: CGFloat = 360
@@ -284,18 +292,23 @@ struct MenuBarContentView: View {
             VStack(spacing: 1) {
                 ForEach(engine.visibleApps) { app in
                     AppRowView(app: app, engine: engine, expandedRows: expandedRows)
+                        .background(
+                            GeometryReader { proxy in
+                                Color.clear.preference(
+                                    key: AppRowHeightsKey.self,
+                                    value: [app.id: proxy.size.height]
+                                )
+                            }
+                        )
                 }
             }
-            .background(
-                GeometryReader { proxy in
-                    Color.clear.preference(key: ContentHeightKey.self, value: proxy.size.height)
-                }
-            )
         }
         .id(visibleAppIDs)
-        .frame(height: min(max(listHeight, 1), maximumListHeight))
-        .onPreferenceChange(ContentHeightKey.self) { height in
-            listHeight = height
+        .frame(height: min(max(visibleAppsHeight, 1), maximumListHeight))
+        .onPreferenceChange(AppRowHeightsKey.self) { heights in
+            for (appID, height) in heights where appRowHeights[appID] != height {
+                appRowHeights[appID] = height
+            }
         }
     }
 
