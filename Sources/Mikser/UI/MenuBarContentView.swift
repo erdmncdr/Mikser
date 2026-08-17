@@ -114,13 +114,13 @@ struct MenuBarContentView: View {
         } label: {
             Image(systemName: "gearshape.fill")
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(Theme.accent)
                 .frame(width: 32, height: 32)
-                .background(Circle().fill(Theme.controlBackground))
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
-        .frame(width: 32)
+        .tint(Theme.accent)
+        .frame(width: 32, height: 32)
+        .background(Circle().fill(Theme.controlBackground))
     }
 
     // MARK: System
@@ -316,12 +316,13 @@ struct MenuBarContentView: View {
                 .foregroundStyle(.primary)
                 .padding(.horizontal, 12)
                 .frame(height: 34)
-                .background(Capsule().fill(Theme.controlBackground))
-                .overlay(Capsule().stroke(Theme.controlBorder, lineWidth: 1))
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
-            .fixedSize()
+            .frame(height: 34)
+            .background(Capsule().fill(Theme.controlBackground))
+            .overlay(Capsule().stroke(Theme.controlBorder, lineWidth: 1))
+            .fixedSize(horizontal: true, vertical: false)
             .help("A favorite remains listed even when it is not playing audio")
 
             Spacer()
@@ -344,12 +345,13 @@ struct MenuBarContentView: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 12)
                     .frame(height: 34)
-                    .background(Capsule().fill(Theme.controlBackground))
-                    .overlay(Capsule().stroke(Theme.controlBorder, lineWidth: 1))
                 }
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
-                .fixedSize()
+                .frame(height: 34)
+                .background(Capsule().fill(Theme.controlBackground))
+                .overlay(Capsule().stroke(Theme.controlBorder, lineWidth: 1))
+                .fixedSize(horizontal: true, vertical: false)
             }
         }
         .padding(.horizontal, Layout.cardInset + 4)
@@ -439,17 +441,13 @@ struct SystemRow<Detail: View>: View {
                     .frame(width: Layout.muteWidth, height: 20)
             }
 
-            Slider(
-                value: Binding(get: { volume ?? 0 }, set: onVolumeChange),
-                in: 0...1,
-                onEditingChanged: { editing in
-                    if !editing { onVolumeCommit?() }
-                }
+            StudioSlider(
+                value: volume ?? 0,
+                range: 0...1,
+                isDisabled: volume == nil || (isMuted ?? false),
+                onChange: onVolumeChange,
+                onEditingChanged: { editing in if !editing { onVolumeCommit?() } }
             )
-            .tint(Theme.accent)
-            .controlSize(.small)
-            // Some devices (certain Bluetooth headphones) offer no software volume.
-            .disabled(volume == nil || (isMuted ?? false))
 
             Text(volume.map { "\(Int(($0 * 100).rounded()))%" } ?? "—")
                 .font(Typography.percent)

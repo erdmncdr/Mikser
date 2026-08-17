@@ -100,6 +100,81 @@ struct LevelBar: View {
     }
 }
 
+/// A compact horizontal fader with a high-contrast thumb. Native macOS sliders
+/// inherit control chrome that varies by OS release and looks out of place inside
+/// the dark studio surfaces.
+struct StudioSlider: View {
+    let value: Double
+    let range: ClosedRange<Double>
+    var isDisabled = false
+    let onChange: (Double) -> Void
+    var onEditingChanged: ((Bool) -> Void)?
+
+    @State private var isDragging = false
+
+    private let knobSize: CGFloat = 16
+
+    var body: some View {
+        GeometryReader { proxy in
+            let usableWidth = max(1, proxy.size.width - knobSize)
+            let span = max(0.0001, range.upperBound - range.lowerBound)
+            let fraction = min(1, max(0, (value - range.lowerBound) / span))
+            let knobX = knobSize / 2 + usableWidth * CGFloat(fraction)
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.primary.opacity(0.13))
+                    .frame(height: 4)
+
+                Capsule()
+                    .fill(Theme.accent)
+                    .frame(width: max(0, knobX - knobSize / 2), height: 4)
+
+                Circle()
+                    .fill(Color.white)
+                    .overlay(Circle().stroke(Color.black.opacity(0.12), lineWidth: 0.5))
+                    .shadow(color: .black.opacity(0.3), radius: 1.5, y: 1)
+                    .frame(width: knobSize, height: knobSize)
+                    .position(x: knobX, y: proxy.size.height / 2)
+            }
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { gesture in
+                        guard !isDisabled else { return }
+                        if !isDragging {
+                            isDragging = true
+                            onEditingChanged?(true)
+                        }
+                        let position = min(CGFloat(1), max(CGFloat(0),
+                            (gesture.location.x - knobSize / 2) / usableWidth
+                        ))
+                        onChange(range.lowerBound + Double(position) * span)
+                    }
+                    .onEnded { _ in
+                        guard !isDisabled else { return }
+                        isDragging = false
+                        onEditingChanged?(false)
+                    }
+            )
+        }
+        .frame(height: 20)
+        .opacity(isDisabled ? 0.45 : 1)
+        .accessibilityLabel("Volume")
+        .accessibilityValue("\(Int((value * 100).rounded())) percent")
+        .accessibilityAdjustableAction { direction in
+            guard !isDisabled else { return }
+            let step = (range.upperBound - range.lowerBound) / 20
+            switch direction {
+            case .increment: onChange(min(range.upperBound, value + step))
+            case .decrement: onChange(max(range.lowerBound, value - step))
+            @unknown default: break
+            }
+        }
+    }
+}
+
 /// The boost button: round, with a double up arrow. SF Symbols has no dependable
 /// "double chevron up", so two are stacked.
 struct BoostButton: View {
@@ -266,18 +341,18 @@ struct DeviceMenu: View {
             }
             .padding(.horizontal, 11)
             .frame(width: Layout.deviceWidth, height: 34)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Theme.controlBackground)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(Theme.controlBorder, lineWidth: 1)
-            )
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
-        .fixedSize()
+        .frame(width: Layout.deviceWidth, height: 34)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Theme.controlBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Theme.controlBorder, lineWidth: 1)
+        )
     }
 }
 

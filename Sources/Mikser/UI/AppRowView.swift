@@ -47,16 +47,12 @@ struct AppRowView: View {
                 engine.setMuted(!settings.isMuted, for: app.id)
             }
 
-            Slider(
-                value: Binding(
-                    get: { Double(settings.volume) },
-                    set: { engine.setVolume(Float($0), for: app.id) }
-                ),
-                in: 0...Double(settings.maximumVolume)
+            StudioSlider(
+                value: Double(settings.volume),
+                range: 0...Double(settings.maximumVolume),
+                isDisabled: settings.isMuted,
+                onChange: { engine.setVolume(Float($0), for: app.id) }
             )
-            .tint(Theme.accent)
-            .controlSize(.small)
-            .disabled(settings.isMuted)
 
             Text("\(Int((settings.volume * 100).rounded()))%")
                 .font(Typography.percent)
