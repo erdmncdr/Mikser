@@ -6,45 +6,61 @@ import AppKit
 import SwiftUI
 
 enum Theme {
-    /// The green audio applications tend to use. Separate tone for light and dark.
+    /// A restrained studio palette: neutral surfaces keep the meters and active
+    /// controls visually dominant without imitating another application's chrome.
     static let accent = Color(nsColor: NSColor(name: nil) { appearance in
         appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            ? NSColor(srgbRed: 0.33, green: 0.84, blue: 0.50, alpha: 1)
-            : NSColor(srgbRed: 0.11, green: 0.65, blue: 0.33, alpha: 1)
+            ? NSColor(srgbRed: 0.05, green: 0.78, blue: 0.52, alpha: 1)
+            : NSColor(srgbRed: 0.02, green: 0.57, blue: 0.36, alpha: 1)
     })
 
-    static let cardBackground = Color.primary.opacity(0.055)
-    static let rowHighlight = Color.primary.opacity(0.05)
-    static let controlBackground = Color.primary.opacity(0.08)
-    static let detailBackground = Color.primary.opacity(0.04)
+    static let panelBackground = adaptive(
+        dark: NSColor(srgbRed: 0.115, green: 0.12, blue: 0.13, alpha: 1),
+        light: NSColor(srgbRed: 0.94, green: 0.945, blue: 0.955, alpha: 1)
+    )
+    static let sectionBackground = adaptive(
+        dark: NSColor(srgbRed: 0.155, green: 0.16, blue: 0.17, alpha: 1),
+        light: NSColor.white
+    )
+    static let sectionBorder = Color.primary.opacity(0.14)
+    static let rowHighlight = Color.primary.opacity(0.065)
+    static let controlBackground = Color.primary.opacity(0.085)
+    static let controlBorder = Color.primary.opacity(0.08)
+    static let detailBackground = Color.primary.opacity(0.045)
+
+    private static func adaptive(dark: NSColor, light: NSColor) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+        })
+    }
 }
 
 /// The single source of truth that keeps rows and column headers aligned.
 /// The slider is flexible; every other column has a fixed width.
 enum Layout {
-    static let panelWidth: CGFloat = 720
-    static let rowSpacing: CGFloat = 9
-    static let rowVerticalPadding: CGFloat = 9
+    static let panelWidth: CGFloat = 760
+    static let rowSpacing: CGFloat = 10
+    static let rowVerticalPadding: CGFloat = 10
 
-    static let starWidth: CGFloat = 18
-    static let meterWidth: CGFloat = 3
-    static let iconSize: CGFloat = 22
-    static let nameWidth: CGFloat = 124
-    static let muteWidth: CGFloat = 22
-    static let percentWidth: CGFloat = 46
+    static let starWidth: CGFloat = 20
+    static let meterWidth: CGFloat = 4
+    static let iconSize: CGFloat = 28
+    static let nameWidth: CGFloat = 126
+    static let muteWidth: CGFloat = 24
+    static let percentWidth: CGFloat = 48
     /// The button stays narrow, but the column is wide enough to fit its header
     /// on one line.
-    static let boostWidth: CGFloat = 26
-    static let boostColumnWidth: CGFloat = 48
-    static let deviceWidth: CGFloat = 176
-    static let fxWidth: CGFloat = 26
+    static let boostWidth: CGFloat = 30
+    static let boostColumnWidth: CGFloat = 50
+    static let deviceWidth: CGFloat = 184
+    static let fxWidth: CGFloat = 30
 
     /// Card (10) plus the row's outer (4) and inner (10) padding. The header row
     /// uses this too.
-    static let contentInset: CGFloat = 24
+    static let contentInset: CGFloat = 18
     static let cardInset: CGFloat = 10
     static let rowOuterPadding: CGFloat = 4
-    static let rowInnerPadding: CGFloat = 10
+    static let rowInnerPadding: CGFloat = 12
 
     /// The section name in the header must be exactly as wide as the row's
     /// star / meter / icon / name block.
@@ -54,11 +70,11 @@ enum Layout {
 }
 
 enum Typography {
-    static let sectionTitle = Font.system(size: 13, weight: .bold)
-    static let columnLabel = Font.system(size: 11)
-    static let rowName = Font.system(size: 13)
-    static let percent = Font.system(size: 12, weight: .medium).monospacedDigit()
-    static let detailLabel = Font.system(size: 11, weight: .medium)
+    static let sectionTitle = Font.system(size: 15, weight: .bold)
+    static let columnLabel = Font.system(size: 11, weight: .semibold)
+    static let rowName = Font.system(size: 14, weight: .medium)
+    static let percent = Font.system(size: 13, weight: .semibold).monospacedDigit()
+    static let detailLabel = Font.system(size: 12, weight: .medium)
 }
 
 // MARK: - Row components
@@ -80,7 +96,7 @@ struct LevelBar: View {
                 }
             }
         }
-        .frame(width: Layout.meterWidth, height: 24)
+        .frame(width: Layout.meterWidth, height: 30)
     }
 }
 
@@ -96,7 +112,7 @@ struct BoostButton: View {
                 Image(systemName: "chevron.compact.up")
                 Image(systemName: "chevron.compact.up")
             }
-            .font(.system(size: 10, weight: .bold))
+            .font(.system(size: 11, weight: .bold))
             .foregroundStyle(isOn ? Color.white : .secondary)
             .frame(width: Layout.boostWidth, height: Layout.boostWidth)
             .background(Circle().fill(isOn ? Theme.accent : Theme.controlBackground))
@@ -109,13 +125,13 @@ struct BoostButton: View {
 /// The round chevron that opens and closes sections and row details.
 struct DisclosureChevron: View {
     let isExpanded: Bool
-    var diameter: CGFloat = 22
+    var diameter: CGFloat = 28
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: "chevron.down")
-                .font(.system(size: 9, weight: .bold))
+                .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(.secondary)
                 .rotationEffect(.degrees(isExpanded ? 0 : -90))
                 .frame(width: diameter, height: diameter)
@@ -132,7 +148,7 @@ struct FavoriteStar: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: isFavorite ? "star.fill" : "star")
-                .font(.system(size: 11))
+                .font(.system(size: 13))
                 .foregroundStyle(isFavorite ? Theme.accent : Color.secondary.opacity(0.45))
                 .frame(width: Layout.starWidth, height: 20)
                 .contentShape(Rectangle())
@@ -150,7 +166,7 @@ struct MuteButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: isMuted ? "speaker.slash.fill" : symbol)
-                .font(.system(size: 12))
+                .font(.system(size: 14))
                 .foregroundStyle(isMuted ? Color.red : .secondary)
                 .frame(width: Layout.muteWidth, height: 20)
                 .contentShape(Rectangle())
@@ -180,13 +196,13 @@ struct ColumnHeader: View {
 
             // The flexible area is the exact counterpart of the row's
             // mute + slider + percentage block.
-            columnLabel("Level").frame(maxWidth: .infinity)
+            columnLabel("Volume").frame(maxWidth: .infinity)
             columnLabel("Boost").frame(width: Layout.boostColumnWidth)
             columnLabel(deviceColumnTitle).frame(width: Layout.deviceWidth)
             columnLabel("FX").frame(width: Layout.fxWidth)
         }
         .padding(.horizontal, Layout.contentInset)
-        .padding(.bottom, 6)
+        .padding(.vertical, 10)
     }
 
     private func columnLabel(_ text: String) -> some View {
@@ -194,21 +210,6 @@ struct ColumnHeader: View {
             .font(Typography.columnLabel)
             .foregroundStyle(.secondary)
             .lineLimit(1)
-    }
-}
-
-/// The rounded card wrapping a section.
-struct SectionCard<Content: View>: View {
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        VStack(spacing: 1) { content }
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Theme.cardBackground)
-            )
-            .padding(.horizontal, Layout.cardInset)
     }
 }
 
@@ -221,24 +222,62 @@ struct DeviceMenu: View {
     let systemDefaultLabel: String
     let onSelect: (String?) -> Void
 
+    private var selectedDevice: AudioDevice? {
+        devices.first { $0.uid == selectedUID }
+    }
+
+    private var label: String {
+        selectedDevice?.name ?? systemDefaultLabel
+    }
+
+    private var symbol: String {
+        selectedDevice?.symbolName ?? (allowsSystemDefault
+            ? "arrow.triangle.2.circlepath"
+            : "hifispeaker.fill")
+    }
+
     var body: some View {
-        // A native popup button: bordered with the double arrow indicator. Menu with
-        // .borderlessButton was tried and swallows both the custom background and the
-        // indicator.
-        Picker("", selection: Binding(
-            get: { selectedUID },
-            set: { onSelect($0) }
-        )) {
+        Menu {
             if allowsSystemDefault {
-                Text(systemDefaultLabel).tag(String?.none)
+                Button { onSelect(nil) } label: {
+                    Label(systemDefaultLabel, systemImage: "arrow.triangle.2.circlepath")
+                }
             }
             ForEach(devices) { device in
-                Text(device.name).tag(String?.some(device.uid))
+                Button { onSelect(device.uid) } label: {
+                    Label(device.name, systemImage: device.symbolName)
+                }
             }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.accent)
+                    .frame(width: 18)
+                Text(label)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 11)
+            .frame(width: Layout.deviceWidth, height: 34)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Theme.controlBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(Theme.controlBorder, lineWidth: 1)
+            )
         }
-        .pickerStyle(.menu)
-        .labelsHidden()
-        .frame(width: Layout.deviceWidth)
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
     }
 }
 
@@ -262,6 +301,19 @@ extension View {
     func rowBackground(isHovering: Bool) -> some View {
         modifier(RowBackground(isHovering: isHovering))
     }
+
+    func sectionSurface() -> some View {
+        padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Theme.sectionBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Theme.sectionBorder, lineWidth: 1)
+            )
+            .padding(.horizontal, Layout.cardInset)
+    }
 }
 
 /// The detail section the FX button opens.
@@ -274,8 +326,12 @@ struct DetailPanel<Content: View>: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
                     .fill(Theme.detailBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .stroke(Theme.controlBorder, lineWidth: 1)
             )
             .padding(.horizontal, Layout.rowOuterPadding + Layout.rowInnerPadding)
             .padding(.bottom, 4)

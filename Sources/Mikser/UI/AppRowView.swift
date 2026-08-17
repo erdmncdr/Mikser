@@ -55,6 +55,7 @@ struct AppRowView: View {
                 in: 0...Double(settings.maximumVolume)
             )
             .tint(Theme.accent)
+            .controlSize(.small)
             .disabled(settings.isMuted)
 
             Text("\(Int((settings.volume * 100).rounded()))%")
@@ -168,12 +169,19 @@ struct AppRowView: View {
     private var icon: some View {
         Group {
             if let image = app.icon {
-                Image(nsImage: image).resizable()
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
             } else {
-                Image(systemName: "app.dashed").resizable().foregroundStyle(.secondary)
+                Image(systemName: "app.dashed")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .foregroundStyle(.secondary)
+                    .padding(3)
             }
         }
         .frame(width: Layout.iconSize, height: Layout.iconSize)
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         .opacity(settings.isMuted ? 0.45 : 1)
     }
 }

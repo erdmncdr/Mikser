@@ -43,16 +43,17 @@ struct MenuBarContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            systemSection.padding(.top, 14)
-            applicationsSection.padding(.top, 16)
-            addApplicationBar.padding(.top, 12)
+            systemSection.padding(.top, 10)
+            applicationsSection.padding(.top, 10)
+            addApplicationBar.padding(.vertical, 10)
 
             if let error = engine.lastError {
                 errorBanner(error)
             }
         }
-        .padding(.vertical, 14)
+        .padding(.vertical, 10)
         .frame(width: Layout.panelWidth)
+        .background(Theme.panelBackground)
         .onAppear { engine.setMenuOpen(true) }
         .onDisappear { engine.setMenuOpen(false) }
     }
@@ -62,16 +63,26 @@ struct MenuBarContentView: View {
     private var header: some View {
         ZStack {
             Text("Mikser")
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: 18, weight: .bold))
                 .frame(maxWidth: .infinity)
 
             HStack {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Theme.accent)
+                    .frame(width: 32, height: 32)
+                    .background(Circle().fill(Theme.controlBackground))
                 Spacer()
                 settingsMenu
             }
         }
         .padding(.horizontal, Layout.contentInset)
-        .padding(.bottom, 4)
+        .padding(.bottom, 10)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color.primary.opacity(0.1))
+                .frame(height: 1)
+        }
     }
 
     private var settingsMenu: some View {
@@ -102,12 +113,14 @@ struct MenuBarContentView: View {
             Button("Quit Mikser") { NSApplication.shared.terminate(nil) }
         } label: {
             Image(systemName: "gearshape.fill")
-                .font(.system(size: 13))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Theme.accent)
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(Theme.controlBackground))
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
-        .frame(width: 22)
+        .frame(width: 32)
     }
 
     // MARK: System
@@ -122,13 +135,15 @@ struct MenuBarContentView: View {
             }
 
             if systemExpanded {
-                SectionCard {
+                VStack(spacing: 1) {
                     outputRow
                     inputRow
                     effectsRow
                 }
+                .padding(.bottom, 4)
             }
         }
+        .sectionSurface()
     }
 
     private var outputRow: some View {
@@ -237,7 +252,7 @@ struct MenuBarContentView: View {
     private var applicationsSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             ColumnHeader(
-                title: "Applications", deviceColumnTitle: "Route Audio",
+                title: "Applications", deviceColumnTitle: "Route To",
                 isExpanded: applicationsExpanded
             ) {
                 withAnimation(.easeOut(duration: 0.15)) { applicationsExpanded.toggle() }
@@ -245,20 +260,19 @@ struct MenuBarContentView: View {
 
             if applicationsExpanded {
                 if engine.visibleApps.isEmpty {
-                    SectionCard {
-                        Text(engine.apps.isEmpty
-                             ? "No applications are playing audio"
-                             : "All applications are hidden")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
-                    }
+                    Text(engine.apps.isEmpty
+                         ? "No applications are playing audio"
+                         : "All applications are hidden")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 22)
                 } else {
-                    SectionCard { appList }
+                    appList.padding(.bottom, 4)
                 }
             }
         }
+        .sectionSurface()
     }
 
     private var appList: some View {
@@ -294,17 +308,51 @@ struct MenuBarContentView: View {
                 }
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "star.fill").font(.system(size: 10))
-                    Text("Add Application").font(.system(size: 12))
+                    Image(systemName: "star.fill").font(.system(size: 12))
+                    Text("Add Application").font(.system(size: 13, weight: .semibold))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 9, weight: .bold))
                 }
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 12)
+                .frame(height: 34)
+                .background(Capsule().fill(Theme.controlBackground))
+                .overlay(Capsule().stroke(Theme.controlBorder, lineWidth: 1))
             }
             .menuStyle(.borderlessButton)
-            .frame(width: 150)
+            .menuIndicator(.hidden)
+            .fixedSize()
             .help("A favorite remains listed even when it is not playing audio")
 
             Spacer()
+
+            if !engine.hiddenApplications.isEmpty {
+                Menu {
+                    ForEach(engine.hiddenApplications) { item in
+                        Button(item.name) { engine.showApplication(item.id) }
+                    }
+                    Divider()
+                    Button("Show All") { engine.showAllApplications() }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "eye.slash.fill")
+                        Text("Hidden \(engine.hiddenApplications.count)")
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 12)
+                    .frame(height: 34)
+                    .background(Capsule().fill(Theme.controlBackground))
+                    .overlay(Capsule().stroke(Theme.controlBorder, lineWidth: 1))
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+            }
         }
-        .padding(.horizontal, Layout.contentInset)
+        .padding(.horizontal, Layout.cardInset + 4)
     }
 
     private func selectApplication() {
@@ -364,12 +412,17 @@ struct SystemRow<Detail: View>: View {
 
     private var mainRow: some View {
         HStack(spacing: Layout.rowSpacing) {
-            // System rows have no star and no meter; the space keeps them aligned.
+            // System rows have no favourite control, but retain the same visual
+            // rhythm as application rows. Their meter reflects the current level.
             Color.clear.frame(width: Layout.starWidth, height: 20)
-            Color.clear.frame(width: Layout.meterWidth, height: 24)
+            LevelBar(
+                level: Float(volume ?? 0),
+                isActive: volume != nil && !(isMuted ?? false)
+            )
 
             Image(systemName: symbol)
-                .font(.system(size: 14))
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(.primary)
                 .frame(width: Layout.iconSize, height: Layout.iconSize)
 
             Text(title)
@@ -394,6 +447,7 @@ struct SystemRow<Detail: View>: View {
                 }
             )
             .tint(Theme.accent)
+            .controlSize(.small)
             // Some devices (certain Bluetooth headphones) offer no software volume.
             .disabled(volume == nil || (isMuted ?? false))
 

@@ -125,8 +125,8 @@ Hidden applications can be restored from **Settings → Hidden Applications**.
 
 ### Metrics
 
-The panel is 720pt wide, the row pitch 40pt (a 22pt icon plus 2×9pt padding), and body
-text 13pt. These are not arbitrary: a tighter layout (11-12pt text, 32pt rows) was
+The panel is 760pt wide, the row pitch 50pt (a 30pt meter plus 2×10pt padding), and
+body text 14pt. These are not arbitrary: a tighter layout (11-12pt text, 32pt rows) was
 tried first and looked cheap. Every measurement lives in `Layout` and every font in
 `Typography`; the header row uses the same constants as the rows, so changing a
 column width in one place keeps the headers aligned.
