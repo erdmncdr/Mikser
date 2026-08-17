@@ -13,5 +13,13 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
-      - name: Build release binary
-        run: swift build -c release
+      - name: Build application bundle
+        run: ./build.sh
+      - name: Package application bundle
+        run: ditto -c -k --sequesterRsrc --keepParent Mikser.app Mikser.zip
+      - name: Upload application bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: Mikser-macOS
+          path: Mikser.zip
+          if-no-files-found: error

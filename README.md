@@ -100,6 +100,9 @@ certificate in Keychain Access and pass its name:
 MIKSER_SIGN_ID="Mikser Dev" ./build.sh
 ```
 
+Every successful GitHub Actions run also publishes a zipped, ad-hoc-signed
+`Mikser.app` bundle as the **Mikser-macOS** workflow artifact.
+
 ## Interface
 
 The panel has two sections — **System** and **Applications** — each inside a card
