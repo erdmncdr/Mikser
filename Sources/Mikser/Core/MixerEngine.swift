@@ -113,6 +113,7 @@ final class MixerEngine {
     private var timer: Timer?
     private var tickCount = 0
     private var isMenuOpen = false
+    private var isPreview = false
 
     private let settingsKey = "io.github.erdmncdr.mikser.settings"
     private let favoritesKey = "io.github.erdmncdr.mikser.favorites"
@@ -122,7 +123,12 @@ final class MixerEngine {
 
     static let shared = MixerEngine()
 
-    init() {
+    init(preview: Bool = false) {
+        if preview {
+            isPreview = true
+            loadPreviewData()
+            return
+        }
         loadPersisted()
         refreshDevices()
         refreshApps()
@@ -139,6 +145,7 @@ final class MixerEngine {
     }
 
     func setMenuOpen(_ open: Bool) {
+        guard !isPreview else { return }
         guard isMenuOpen != open else { return }
         isMenuOpen = open
         if open {
@@ -146,6 +153,56 @@ final class MixerEngine {
             refreshApps()
         }
         restartTimer()
+    }
+
+    /// Deterministic, anonymous data for screenshots and visual regression checks.
+    /// It deliberately avoids touching Core Audio, UserDefaults, or process lists.
+    private func loadPreviewData() {
+        let speakers = AudioDevice(
+            id: 100, uid: "preview.studio-speakers", name: "Studio Speakers",
+            outputChannels: 2, inputChannels: 0, kind: .other
+        )
+        let headphones = AudioDevice(
+            id: 101, uid: "preview.headphones", name: "Studio Headphones",
+            outputChannels: 2, inputChannels: 0, kind: .headphones
+        )
+        let microphone = AudioDevice(
+            id: 102, uid: "preview.microphone", name: "Studio Microphone",
+            outputChannels: 0, inputChannels: 1, kind: .microphone
+        )
+
+        outputDevices = [speakers, headphones]
+        inputDevices = [microphone]
+        defaultOutputDevice = speakers
+        defaultInputDevice = microphone
+        effectsDevice = speakers
+        systemVolume = 0.82
+        inputVolume = 0.64
+        effectsVolume = 1
+
+        let examples: [(id: String, name: String, symbol: String, favorite: Bool)] = [
+            ("preview.music", "Music", "music.note", true),
+            ("preview.browser", "Browser", "globe", false),
+            ("preview.messages", "Messages", "message.fill", false)
+        ]
+        apps = examples.enumerated().map { index, item in
+            AudioApp(
+                id: item.id,
+                name: item.name,
+                icon: NSImage(systemSymbolName: item.symbol, accessibilityDescription: item.name),
+                processObjectIDs: [AudioObjectID(200 + index)],
+                isPlaying: true,
+                isFavorite: item.favorite
+            )
+        }
+        favorites = Set(examples.filter(\.favorite).map(\.id))
+        levels = ["preview.music": 0.74, "preview.browser": 0.42, "preview.messages": 0.18]
+
+        var music = AppSettings()
+        music.volume = 0.78
+        settings["preview.music"] = music
+        settings["preview.browser"] = AppSettings()
+        settings["preview.messages"] = AppSettings()
     }
 
     // MARK: Application settings

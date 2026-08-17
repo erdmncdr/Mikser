@@ -17,7 +17,7 @@ enum PreviewRunner {
         application.setActivationPolicy(.regular)
 
         let controller = NSHostingController(
-            rootView: MenuBarContentView(engine: MixerEngine.shared)
+            rootView: MenuBarContentView(engine: MixerEngine(preview: true))
         )
         // The menu bar popover sizes itself to its content, so the preview has to do
         // the same. With a fixed height, layout bugs that only appear in the popover

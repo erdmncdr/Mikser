@@ -83,6 +83,7 @@ enum Typography {
 struct LevelBar: View {
     let level: Float
     let isActive: Bool
+    var warnsAtPeak = true
 
     var body: some View {
         GeometryReader { proxy in
@@ -90,7 +91,7 @@ struct LevelBar: View {
                 Capsule().fill(Color.primary.opacity(0.10))
                 if isActive {
                     Capsule()
-                        .fill(level > 0.92 ? Color.orange : Theme.accent)
+                        .fill(warnsAtPeak && level > 0.92 ? Color.orange : Theme.accent)
                         .frame(height: proxy.size.height * CGFloat(min(1, max(0, level))))
                         .animation(.linear(duration: 0.08), value: level)
                 }

@@ -419,7 +419,8 @@ struct SystemRow<Detail: View>: View {
             Color.clear.frame(width: Layout.starWidth, height: 20)
             LevelBar(
                 level: Float(volume ?? 0),
-                isActive: volume != nil && !(isMuted ?? false)
+                isActive: volume != nil && !(isMuted ?? false),
+                warnsAtPeak: false
             )
 
             Image(systemName: symbol)
