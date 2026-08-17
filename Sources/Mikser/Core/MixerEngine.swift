@@ -342,18 +342,18 @@ final class MixerEngine {
     /// settings keep working until the application is explicitly reset.
     func hideApplication(_ appID: String) {
         hiddenApps.insert(appID)
-        savePersisted()
+        if !isPreview { savePersisted() }
     }
 
     func showApplication(_ appID: String) {
         hiddenApps.remove(appID)
-        savePersisted()
+        if !isPreview { savePersisted() }
         refreshApps()
     }
 
     func showAllApplications() {
         hiddenApps.removeAll()
-        savePersisted()
+        if !isPreview { savePersisted() }
         refreshApps()
     }
 

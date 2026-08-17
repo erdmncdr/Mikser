@@ -38,20 +38,24 @@ struct MenuBarContentView: View {
         )
     }
 
-    private let maximumListHeight: CGFloat = 440
+    private var visibleAppIDs: [String] {
+        engine.visibleApps.map(\.id)
+    }
+
+    private let maximumListHeight: CGFloat = 360
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            systemSection.padding(.top, 10)
-            applicationsSection.padding(.top, 10)
-            addApplicationBar.padding(.vertical, 10)
+            systemSection.padding(.top, 8)
+            applicationsSection.padding(.top, 8)
+            addApplicationBar.padding(.vertical, 8)
 
             if let error = engine.lastError {
                 errorBanner(error)
             }
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, 8)
         .frame(width: Layout.panelWidth)
         .background(Theme.panelBackground)
         .onAppear { engine.setMenuOpen(true) }
@@ -77,7 +81,7 @@ struct MenuBarContentView: View {
             }
         }
         .padding(.horizontal, Layout.contentInset)
-        .padding(.bottom, 10)
+        .padding(.bottom, 8)
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(Color.primary.opacity(0.1))
@@ -288,9 +292,16 @@ struct MenuBarContentView: View {
                 }
             )
         }
+        .id(visibleAppIDs)
         .frame(height: min(max(listHeight, 1), maximumListHeight))
         .onPreferenceChange(ContentHeightKey.self) { height in
             listHeight = height
+        }
+        .onChange(of: visibleAppIDs) { _, _ in
+            // A ScrollView keeps its previous explicit height when rows vanish.
+            // Collapse it for one layout pass so the preference is remeasured
+            // from the remaining rows and the menu-bar panel can shrink.
+            listHeight = 0
         }
     }
 

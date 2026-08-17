@@ -16,9 +16,8 @@ enum PreviewRunner {
         let application = NSApplication.shared
         application.setActivationPolicy(.regular)
 
-        let controller = NSHostingController(
-            rootView: MenuBarContentView(engine: MixerEngine(preview: true))
-        )
+        let engine = MixerEngine(preview: true)
+        let controller = NSHostingController(rootView: MenuBarContentView(engine: engine))
         // The menu bar popover sizes itself to its content, so the preview has to do
         // the same. With a fixed height, layout bugs that only appear in the popover
         // — such as a ScrollView collapsing to zero height — stay invisible here.
@@ -36,6 +35,15 @@ enum PreviewRunner {
         // Development window: keep it above other applications.
         window.level = .floating
         window.makeKeyAndOrderFront(nil)
+
+        // Regression mode for the menu-bar panel's dynamic height. It starts
+        // with three rows, then removes two so the window must shrink in place.
+        if CommandLine.arguments.contains("--preview-resize-test") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                engine.hideApplication("preview.browser")
+                engine.hideApplication("preview.messages")
+            }
+        }
 
         application.activate(ignoringOtherApps: true)
         application.run()

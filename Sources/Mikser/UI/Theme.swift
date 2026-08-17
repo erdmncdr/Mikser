@@ -38,29 +38,29 @@ enum Theme {
 /// The single source of truth that keeps rows and column headers aligned.
 /// The slider is flexible; every other column has a fixed width.
 enum Layout {
-    static let panelWidth: CGFloat = 760
-    static let rowSpacing: CGFloat = 10
-    static let rowVerticalPadding: CGFloat = 10
+    static let panelWidth: CGFloat = 730
+    static let rowSpacing: CGFloat = 8
+    static let rowVerticalPadding: CGFloat = 8
 
     static let starWidth: CGFloat = 20
     static let meterWidth: CGFloat = 4
-    static let iconSize: CGFloat = 28
-    static let nameWidth: CGFloat = 126
-    static let muteWidth: CGFloat = 24
-    static let percentWidth: CGFloat = 48
+    static let iconSize: CGFloat = 26
+    static let nameWidth: CGFloat = 120
+    static let muteWidth: CGFloat = 22
+    static let percentWidth: CGFloat = 46
     /// The button stays narrow, but the column is wide enough to fit its header
     /// on one line.
     static let boostWidth: CGFloat = 30
-    static let boostColumnWidth: CGFloat = 50
+    static let boostColumnWidth: CGFloat = 48
     static let deviceWidth: CGFloat = 184
-    static let fxWidth: CGFloat = 30
+    static let fxWidth: CGFloat = 28
 
     /// Card (10) plus the row's outer (4) and inner (10) padding. The header row
     /// uses this too.
-    static let contentInset: CGFloat = 18
-    static let cardInset: CGFloat = 10
+    static let contentInset: CGFloat = 16
+    static let cardInset: CGFloat = 8
     static let rowOuterPadding: CGFloat = 4
-    static let rowInnerPadding: CGFloat = 12
+    static let rowInnerPadding: CGFloat = 10
 
     /// The section name in the header must be exactly as wide as the row's
     /// star / meter / icon / name block.
@@ -283,7 +283,7 @@ struct ColumnHeader: View {
             columnLabel("FX").frame(width: Layout.fxWidth)
         }
         .padding(.horizontal, Layout.contentInset)
-        .padding(.vertical, 10)
+        .padding(.vertical, 8)
     }
 
     private func columnLabel(_ text: String) -> some View {
@@ -400,11 +400,11 @@ extension View {
     func sectionSurface() -> some View {
         padding(.vertical, 4)
             .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Theme.sectionBackground)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(Theme.sectionBorder, lineWidth: 1)
             )
             .padding(.horizontal, Layout.cardInset)
