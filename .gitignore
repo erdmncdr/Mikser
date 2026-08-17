@@ -1,0 +1,7 @@
+.build/
+.swiftpm/
+Mikser.app/
+Resources/Mikser.iconset/
+Resources/Mikser.icns
+*.xcodeproj
+.DS_Store

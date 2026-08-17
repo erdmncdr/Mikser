@@ -1,0 +1,434 @@
+//  Mikser — per-app audio control for macOS
+//  Copyright (C) 2026 Mikser Contributors
+//  SPDX-License-Identifier: GPL-3.0-or-later
+
+import AppKit
+import SwiftUI
+import UniformTypeIdentifiers
+
+/// Measures the content's natural height and carries it upward.
+private struct ContentHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+struct MenuBarContentView: View {
+    @Bindable var engine: MixerEngine
+
+    @AppStorage("mikser.systemExpanded") private var systemExpanded = true
+    @AppStorage("mikser.applicationsExpanded") private var applicationsExpanded = true
+
+    /// A ScrollView has no natural height of its own, so in a container that sizes
+    /// itself to its content — such as the menu bar panel — it collapses to zero.
+    /// The content is measured and the height applied by hand.
+    @State private var listHeight: CGFloat = 0
+    @State private var effectsDraft: Double?
+
+    // Details left open are remembered across sessions. @AppStorage cannot hold a
+    // set, so the row identifiers live in one newline-separated string.
+    @AppStorage("mikser.outputDetailExpanded") private var outputDetailExpanded = false
+    @AppStorage("mikser.expandedRows") private var expandedRowsRaw = ""
+
+    private var expandedRows: Binding<Set<String>> {
+        Binding(
+            get: { Set(expandedRowsRaw.split(separator: "\n").map(String.init)) },
+            set: { expandedRowsRaw = $0.sorted().joined(separator: "\n") }
+        )
+    }
+
+    private let maximumListHeight: CGFloat = 440
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            systemSection.padding(.top, 14)
+            applicationsSection.padding(.top, 16)
+            addApplicationBar.padding(.top, 12)
+
+            if let error = engine.lastError {
+                errorBanner(error)
+            }
+        }
+        .padding(.vertical, 14)
+        .frame(width: Layout.panelWidth)
+        .onAppear { engine.setMenuOpen(true) }
+        .onDisappear { engine.setMenuOpen(false) }
+    }
+
+    // MARK: Header
+
+    private var header: some View {
+        ZStack {
+            Text("Mikser")
+                .font(.system(size: 14, weight: .bold))
+                .frame(maxWidth: .infinity)
+
+            HStack {
+                Spacer()
+                settingsMenu
+            }
+        }
+        .padding(.horizontal, Layout.contentInset)
+        .padding(.bottom, 4)
+    }
+
+    private var settingsMenu: some View {
+        Menu {
+            Button("Ses Ayarları…") {
+                NSWorkspace.shared.open(
+                    URL(string: "x-apple.systempreferences:com.apple.Sound-Settings.extension")!
+                )
+            }
+            Button("Bluetooth Ayarları…") {
+                NSWorkspace.shared.open(
+                    URL(string: "x-apple.systempreferences:com.apple.BluetoothSettings")!
+                )
+            }
+            Divider()
+            Button("Tüm Ayarları Sıfırla") { engine.resetAll() }
+            Divider()
+            Button("Mikser'den Çık") { NSApplication.shared.terminate(nil) }
+        } label: {
+            Image(systemName: "gearshape.fill")
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .frame(width: 22)
+    }
+
+    // MARK: System
+
+    private var systemSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ColumnHeader(
+                title: "Sistem", deviceColumnTitle: "Cihaz",
+                isExpanded: systemExpanded
+            ) {
+                withAnimation(.easeOut(duration: 0.15)) { systemExpanded.toggle() }
+            }
+
+            if systemExpanded {
+                SectionCard {
+                    outputRow
+                    inputRow
+                    effectsRow
+                }
+            }
+        }
+    }
+
+    private var outputRow: some View {
+        SystemRow(
+            symbol: engine.defaultOutputDevice?.symbolName ?? "hifispeaker.fill",
+            title: "Çıkış",
+            volume: engine.systemVolume.map(Double.init),
+            onVolumeChange: { engine.setSystemVolume(Float($0)) },
+            isMuted: engine.systemMuted,
+            onMuteToggle: { engine.setSystemMuted(!engine.systemMuted) },
+            devices: engine.outputDevices,
+            selectedUID: engine.defaultOutputDevice?.uid,
+            onSelectDevice: { uid in
+                if let device = engine.outputDevices.first(where: { $0.uid == uid }) {
+                    engine.setSystemOutputDevice(device)
+                }
+            },
+            isExpanded: outputDetailExpanded,
+            onToggleExpand: {
+                withAnimation(.easeOut(duration: 0.15)) { outputDetailExpanded.toggle() }
+            }
+        ) {
+            sampleRateControl
+        }
+    }
+
+    private var inputRow: some View {
+        SystemRow(
+            symbol: "mic.fill",
+            title: "Giriş",
+            volume: engine.inputVolume.map(Double.init),
+            onVolumeChange: { engine.setInputVolume(Float($0)) },
+            isMuted: engine.inputMuted,
+            onMuteToggle: { engine.setInputMuted(!engine.inputMuted) },
+            muteSymbol: "mic.fill",
+            devices: engine.inputDevices,
+            selectedUID: engine.defaultInputDevice?.uid,
+            onSelectDevice: { uid in
+                if let device = engine.inputDevices.first(where: { $0.uid == uid }) {
+                    engine.setSystemInputDevice(device)
+                }
+            }
+        )
+    }
+
+    /// Alert sounds. Their volume is written through AppleScript, so it is held
+    /// locally while dragging and only sent to the system on release.
+    private var effectsRow: some View {
+        SystemRow(
+            symbol: "bell.fill",
+            title: "Ses Efektleri",
+            volume: effectsDraft ?? engine.effectsVolume.map(Double.init),
+            onVolumeChange: { effectsDraft = $0 },
+            onVolumeCommit: {
+                if let draft = effectsDraft {
+                    engine.setEffectsVolume(Float(draft))
+                    effectsDraft = nil
+                }
+            },
+            devices: engine.outputDevices,
+            selectedUID: engine.effectsDevice?.uid,
+            onSelectDevice: { uid in
+                if let device = engine.outputDevices.first(where: { $0.uid == uid }) {
+                    engine.setEffectsDevice(device)
+                }
+            }
+        )
+    }
+
+    private var sampleRateControl: some View {
+        HStack(spacing: 10) {
+            Text("Örnekleme Hızı")
+                .font(Typography.detailLabel)
+                .frame(width: 110, alignment: .leading)
+
+            let rates = engine.availableSampleRates(of: engine.defaultOutputDevice)
+            if rates.isEmpty {
+                Text("Bu cihaz bildirmiyor")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            } else {
+                Picker("", selection: Binding(
+                    get: { engine.sampleRate(of: engine.defaultOutputDevice) ?? rates[0] },
+                    set: { rate in
+                        if let device = engine.defaultOutputDevice {
+                            engine.setSampleRate(rate, for: device)
+                        }
+                    }
+                )) {
+                    ForEach(rates, id: \.self) { rate in
+                        // verbatim: Text applies the locale's grouping separator to
+                        // interpolated numbers, and "24.000 Hz" reads as 24 by mistake.
+                        Text(verbatim: "\(Int(rate)) Hz").tag(rate)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .frame(width: 150)
+            }
+            Spacer()
+        }
+    }
+
+    // MARK: Applications
+
+    private var applicationsSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ColumnHeader(
+                title: "Uygulamalar", deviceColumnTitle: "Sesi Yönlendir",
+                isExpanded: applicationsExpanded
+            ) {
+                withAnimation(.easeOut(duration: 0.15)) { applicationsExpanded.toggle() }
+            }
+
+            if applicationsExpanded {
+                if engine.apps.isEmpty {
+                    SectionCard {
+                        Text("Ses çalan uygulama yok")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                    }
+                } else {
+                    SectionCard { appList }
+                }
+            }
+        }
+    }
+
+    private var appList: some View {
+        ScrollView {
+            VStack(spacing: 1) {
+                ForEach(engine.apps) { app in
+                    AppRowView(app: app, engine: engine, expandedRows: expandedRows)
+                }
+            }
+            .background(
+                GeometryReader { proxy in
+                    Color.clear.preference(key: ContentHeightKey.self, value: proxy.size.height)
+                }
+            )
+        }
+        .frame(height: min(max(listHeight, 1), maximumListHeight))
+        .onPreferenceChange(ContentHeightKey.self) { height in
+            listHeight = height
+        }
+    }
+
+    // MARK: Adding applications
+
+    private var addApplicationBar: some View {
+        HStack {
+            Menu {
+                Button("Uygulama Seç…") { selectApplication() }
+                Divider()
+                Section("Çalışan Uygulamalar") {
+                    ForEach(AudioProcessMonitor.selectableRunningApplications(), id: \.bundleID) { item in
+                        Button(item.name) { engine.addFavorite(bundleID: item.bundleID) }
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "star.fill").font(.system(size: 10))
+                    Text("Uygulama Ekle").font(.system(size: 12))
+                }
+            }
+            .menuStyle(.borderlessButton)
+            .frame(width: 150)
+            .help("Favori eklenen uygulama ses çalmasa da listede kalır")
+
+            Spacer()
+        }
+        .padding(.horizontal, Layout.contentInset)
+    }
+
+    private func selectApplication() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.application]
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.prompt = "Ekle"
+
+        guard panel.runModal() == .OK, let url = panel.url,
+              let bundleID = Bundle(url: url)?.bundleIdentifier else { return }
+        engine.addFavorite(bundleID: bundleID)
+    }
+
+    // MARK: Error
+
+    private func errorBanner(_ message: String) -> some View {
+        Text(message)
+            .font(.system(size: 11))
+            .foregroundStyle(.red)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, Layout.contentInset)
+            .padding(.top, 12)
+    }
+}
+
+/// The rows in the System section (output, input, sound effects).
+/// They use the same column metrics as application rows; only the star is replaced
+/// by empty space.
+struct SystemRow<Detail: View>: View {
+    let symbol: String
+    let title: String
+    let volume: Double?
+    let onVolumeChange: (Double) -> Void
+    var onVolumeCommit: (() -> Void)?
+    var isMuted: Bool?
+    var onMuteToggle: (() -> Void)?
+    var muteSymbol: String = "speaker.wave.2.fill"
+    let devices: [AudioDevice]
+    let selectedUID: String?
+    let onSelectDevice: (String) -> Void
+    var isExpanded: Bool = false
+    var onToggleExpand: (() -> Void)?
+    @ViewBuilder var detail: Detail
+
+    @State private var isHovering = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            mainRow
+            if isExpanded, !(Detail.self == EmptyView.self) {
+                DetailPanel { detail }
+            }
+        }
+    }
+
+    private var mainRow: some View {
+        HStack(spacing: Layout.rowSpacing) {
+            // System rows have no star and no meter; the space keeps them aligned.
+            Color.clear.frame(width: Layout.starWidth, height: 20)
+            Color.clear.frame(width: Layout.meterWidth, height: 24)
+
+            Image(systemName: symbol)
+                .font(.system(size: 14))
+                .frame(width: Layout.iconSize, height: Layout.iconSize)
+
+            Text(title)
+                .font(Typography.rowName)
+                .lineLimit(1)
+                .frame(width: Layout.nameWidth, alignment: .leading)
+
+            if let isMuted, let onMuteToggle {
+                MuteButton(isMuted: isMuted, symbol: muteSymbol, action: onMuteToggle)
+            } else {
+                Image(systemName: muteSymbol)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .frame(width: Layout.muteWidth, height: 20)
+            }
+
+            Slider(
+                value: Binding(get: { volume ?? 0 }, set: onVolumeChange),
+                in: 0...1,
+                onEditingChanged: { editing in
+                    if !editing { onVolumeCommit?() }
+                }
+            )
+            .tint(Theme.accent)
+            // Some devices (certain Bluetooth headphones) offer no software volume.
+            .disabled(volume == nil || (isMuted ?? false))
+
+            Text(volume.map { "\(Int(($0 * 100).rounded()))%" } ?? "—")
+                .font(Typography.percent)
+                .foregroundStyle(volume == nil ? .secondary : .primary)
+                .frame(width: Layout.percentWidth, alignment: .trailing)
+
+            // System rows have no boost; the space keeps the columns aligned.
+            Color.clear.frame(width: Layout.boostColumnWidth, height: 20)
+
+            DeviceMenu(
+                devices: devices,
+                selectedUID: selectedUID,
+                allowsSystemDefault: false,
+                systemDefaultLabel: "Cihaz yok",
+                onSelect: { uid in if let uid { onSelectDevice(uid) } }
+            )
+
+            if let onToggleExpand {
+                DisclosureChevron(isExpanded: isExpanded, diameter: Layout.fxWidth, action: onToggleExpand)
+                    .frame(width: Layout.fxWidth)
+            } else {
+                Color.clear.frame(width: Layout.fxWidth, height: 20)
+            }
+        }
+        .rowBackground(isHovering: isHovering)
+        .onHover { isHovering = $0 }
+    }
+}
+
+extension SystemRow where Detail == EmptyView {
+    init(
+        symbol: String, title: String, volume: Double?,
+        onVolumeChange: @escaping (Double) -> Void,
+        onVolumeCommit: (() -> Void)? = nil,
+        isMuted: Bool? = nil, onMuteToggle: (() -> Void)? = nil,
+        muteSymbol: String = "speaker.wave.2.fill",
+        devices: [AudioDevice], selectedUID: String?,
+        onSelectDevice: @escaping (String) -> Void
+    ) {
+        self.init(
+            symbol: symbol, title: title, volume: volume,
+            onVolumeChange: onVolumeChange, onVolumeCommit: onVolumeCommit,
+            isMuted: isMuted, onMuteToggle: onMuteToggle, muteSymbol: muteSymbol,
+            devices: devices, selectedUID: selectedUID, onSelectDevice: onSelectDevice,
+            isExpanded: false, onToggleExpand: nil, detail: { EmptyView() }
+        )
+    }
+}
