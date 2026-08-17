@@ -120,6 +120,10 @@ struct MenuBarContentView: View {
                 }
                 Divider()
             }
+            Button("Check for Updates…") {
+                (NSApplication.shared.delegate as? AppDelegate)?.checkForUpdates()
+            }
+            Divider()
             Button("Reset All Settings") { engine.resetAll() }
             Divider()
             Button("Quit Mikser") { NSApplication.shared.terminate(nil) }

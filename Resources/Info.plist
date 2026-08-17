@@ -15,9 +15,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.1</string>
+	<string>0.2.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>2</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>LSUIElement</key>
@@ -26,5 +26,17 @@
 	<true/>
 	<key>NSAudioCaptureUsageDescription</key>
 	<string>Mikser captures system audio to control each application's sound separately. Audio is never recorded or transmitted.</string>
+	<key>SUFeedURL</key>
+	<string>https://github.com/erdmncdr/Mikser/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>oyWd4rFEcxs3ciLnWWH4PWFDuJ7xIXrvNVcLWBprh28=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
+	<key>SURequireSignedFeed</key>
+	<true/>
 </dict>
 </plist>

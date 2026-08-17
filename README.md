@@ -10,6 +10,11 @@ each application separately, mutes it, routes it to a different output device, a
 runs it through a ten-band equalizer — built entirely on public Core Audio APIs.
 No kernel extension, no code injection, no audio driver to install.
 
+Mikser checks a cryptographically signed GitHub feed once a day. Starting with
+version 0.2.0, future releases can be downloaded and installed from the built-in
+**Check for Updates…** command. Older builds need to install version 0.2.0 once
+manually before they can receive automatic update notifications.
+
 ![Mikser panel](docs/screenshot.png)
 
 ## Why this exists

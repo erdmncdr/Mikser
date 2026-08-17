@@ -17,6 +17,10 @@ jobs:
         run: ./build.sh
       - name: Package application bundle
         run: ditto -c -k --sequesterRsrc --keepParent Mikser.app Mikser.zip
+      - name: Verify application bundle
+        run: |
+          codesign --verify --deep --strict --verbose=2 Mikser.app
+          test "$(otool -L Mikser.app/Contents/MacOS/Mikser | grep -c '@rpath/Sparkle.framework')" -eq 1
       - name: Upload application bundle
         uses: actions/upload-artifact@v7
         with:

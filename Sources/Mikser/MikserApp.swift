@@ -3,6 +3,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import AppKit
+import Sparkle
 import SwiftUI
 
 // The entry point lives in main.swift, so @main cannot be used here.
@@ -27,6 +28,18 @@ struct MikserApp: App {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    /// Sparkle keeps this controller alive for the whole process. It checks the
+    /// signed GitHub appcast on launch and presents the standard macOS update UI.
+    private let updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
+
+    func checkForUpdates() {
+        updaterController.checkForUpdates(nil)
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         // Destroy taps explicitly so application audio returns straight to the hardware.
         MainActor.assumeIsolated { MixerEngine.shared.shutdown() }

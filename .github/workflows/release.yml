@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Validate tag and version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          plist_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
+          if [ "$tag" = "$version" ] || [ "$version" != "$plist_version" ]; then
+            echo "Tag $tag must match Info.plist version $plist_version (for example v$plist_version)." >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build application bundle
+        run: ./build.sh
+
+      - name: Verify application bundle
+        run: codesign --verify --deep --strict --verbose=2 Mikser.app
+
+      - name: Package application bundle
+        id: archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_dir="$RUNNER_TEMP/mikser-release"
+          mkdir -p "$release_dir"
+          archive="Mikser-${{ steps.version.outputs.version }}.zip"
+          ditto -c -k --sequesterRsrc --keepParent Mikser.app "$release_dir/$archive"
+          echo "directory=$release_dir" >> "$GITHUB_OUTPUT"
+          echo "name=$archive" >> "$GITHUB_OUTPUT"
+
+      - name: Generate signed Sparkle appcast
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$SPARKLE_PRIVATE_KEY" ]; then
+            echo "The SPARKLE_PRIVATE_KEY repository secret is missing." >&2
+            exit 1
+          fi
+          generator=".build/artifacts/sparkle/Sparkle/bin/generate_appcast"
+          test -x "$generator"
+          printf '%s' "$SPARKLE_PRIVATE_KEY" | "$generator" \
+            --ed-key-file - \
+            --download-url-prefix "https://github.com/erdmncdr/Mikser/releases/download/${{ steps.version.outputs.tag }}/" \
+            --link "https://github.com/erdmncdr/Mikser" \
+            --maximum-versions 1 \
+            "${{ steps.archive.outputs.directory }}"
+          test -s "${{ steps.archive.outputs.directory }}/appcast.xml"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "${{ steps.version.outputs.tag }}" \
+            "${{ steps.archive.outputs.directory }}/${{ steps.archive.outputs.name }}" \
+            "${{ steps.archive.outputs.directory }}/appcast.xml" \
+            --title "Mikser ${{ steps.version.outputs.version }}" \
+            --generate-notes
