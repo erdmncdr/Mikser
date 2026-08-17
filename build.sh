@@ -28,13 +28,22 @@ swift build -c release
 
 echo "==> Assembling the application bundle"
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 cp ".build/release/$APP_NAME" "$APP/Contents/MacOS/$APP_NAME"
 cp "Resources/Info.plist" "$APP/Contents/Info.plist"
 cp "Resources/$APP_NAME.icns" "$APP/Contents/Resources/$APP_NAME.icns"
 
+SPARKLE_FRAMEWORK=".build/release/Sparkle.framework"
+if [ ! -d "$SPARKLE_FRAMEWORK" ]; then
+  echo "error: Sparkle.framework was not produced by Swift Package Manager" >&2
+  exit 1
+fi
+# ditto preserves the versioned framework's symlinks and executable permissions.
+ditto "$SPARKLE_FRAMEWORK" "$APP/Contents/Frameworks/Sparkle.framework"
+
 echo "==> Signing ($SIGN_ID)"
 codesign --force --sign "$SIGN_ID" --identifier "$BUNDLE_ID" "$APP"
+codesign --verify --deep --strict "$APP"
 
 echo "==> Ready: $(pwd)/$APP"
 echo "    Run it with: open $APP"
