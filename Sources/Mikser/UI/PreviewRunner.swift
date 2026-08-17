@@ -37,11 +37,15 @@ enum PreviewRunner {
         window.makeKeyAndOrderFront(nil)
 
         // Regression mode for the menu-bar panel's dynamic height. It starts
-        // with three rows, then removes two so the window must shrink in place.
+        // with three rows, removes two, then restores one. The window must shrink
+        // and grow again without collapsing the Applications section.
         if CommandLine.arguments.contains("--preview-resize-test") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 engine.hideApplication("preview.browser")
                 engine.hideApplication("preview.messages")
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                engine.showApplication("preview.browser")
             }
         }
 

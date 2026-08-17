@@ -347,14 +347,18 @@ final class MixerEngine {
 
     func showApplication(_ appID: String) {
         hiddenApps.remove(appID)
-        if !isPreview { savePersisted() }
-        refreshApps()
+        if !isPreview {
+            savePersisted()
+            refreshApps()
+        }
     }
 
     func showAllApplications() {
         hiddenApps.removeAll()
-        if !isPreview { savePersisted() }
-        refreshApps()
+        if !isPreview {
+            savePersisted()
+            refreshApps()
+        }
     }
 
     // MARK: System output, input and effects

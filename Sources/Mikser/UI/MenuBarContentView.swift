@@ -10,7 +10,7 @@ import UniformTypeIdentifiers
 private struct ContentHeightKey: PreferenceKey {
     static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
+        value = nextValue()
     }
 }
 
@@ -296,12 +296,6 @@ struct MenuBarContentView: View {
         .frame(height: min(max(listHeight, 1), maximumListHeight))
         .onPreferenceChange(ContentHeightKey.self) { height in
             listHeight = height
-        }
-        .onChange(of: visibleAppIDs) { _, _ in
-            // A ScrollView keeps its previous explicit height when rows vanish.
-            // Collapse it for one layout pass so the preference is remeasured
-            // from the remaining rows and the menu-bar panel can shrink.
-            listHeight = 0
         }
     }
 
