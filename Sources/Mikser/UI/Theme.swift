@@ -365,7 +365,7 @@ struct DeviceMenu: View {
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(.secondary)
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 8)
             }
             .allowsHitTesting(false)
         }
