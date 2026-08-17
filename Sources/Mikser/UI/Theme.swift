@@ -330,6 +330,21 @@ struct DeviceMenu: View {
                 }
             }
         } label: {
+            Color.clear
+            .frame(width: Layout.deviceWidth, height: 34)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .frame(width: Layout.deviceWidth, height: 34)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Theme.controlBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Theme.controlBorder, lineWidth: 1)
+        )
+        .overlay {
             ZStack {
                 HStack(spacing: 8) {
                     Image(systemName: symbol)
@@ -352,19 +367,8 @@ struct DeviceMenu: View {
                 }
                 .padding(.horizontal, 12)
             }
-            .frame(width: Layout.deviceWidth, height: 34)
+            .allowsHitTesting(false)
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .frame(width: Layout.deviceWidth, height: 34)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Theme.controlBackground)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Theme.controlBorder, lineWidth: 1)
-        )
     }
 }
 
