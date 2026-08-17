@@ -12,7 +12,7 @@ struct CoreAudioError: LocalizedError {
     let status: OSStatus
 
     var errorDescription: String? {
-        "\(operation) başarısız: \(status) '\(status.fourCharCode)'"
+        "\(operation) failed: \(status) '\(status.fourCharCode)'"
     }
 }
 

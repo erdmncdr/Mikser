@@ -32,14 +32,14 @@ enum EqualizerPreset: String, CaseIterable, Codable {
 
     var displayName: String {
         switch self {
-        case .flat:       "Düz"
-        case .bass:       "Bas Yükselt"
-        case .treble:     "Tiz Yükselt"
-        case .vocal:      "Vokal"
-        case .podcast:    "Konuşma"
-        case .night:      "Gece Modu"
+        case .flat:       "Flat"
+        case .bass:       "Bass Boost"
+        case .treble:     "Treble Boost"
+        case .vocal:      "Vocal"
+        case .podcast:    "Podcast"
+        case .night:      "Night Mode"
         case .rock:       "Rock"
-        case .electronic: "Elektronik"
+        case .electronic: "Electronic"
         }
     }
 

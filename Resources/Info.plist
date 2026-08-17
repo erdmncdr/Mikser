@@ -25,6 +25,6 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSAudioCaptureUsageDescription</key>
-	<string>Mikser, uygulamaların sesini ayrı ayrı kontrol edebilmek için sistem sesini yakalar. Ses hiçbir zaman kaydedilmez veya dışarı gönderilmez.</string>
+	<string>Mikser captures system audio to control each application's sound separately. Audio is never recorded or transmitted.</string>
 </dict>
 </plist>

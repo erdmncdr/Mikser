@@ -70,6 +70,7 @@ new helper appears, the tap is rebuilt automatically.
 - Per-application output device routing
 - Per-application peak level meters
 - Favourites: applications stay in the list while closed, with their settings ready
+- Hide applications from the panel without interrupting their saved audio settings
 - System output / input / sound effects rows, each with its own device selector
 - Sample rate control for the output device
 - Collapsible sections and row details, with the state remembered
@@ -115,6 +116,9 @@ The System section holds three rows:
 
 The chevron in the **FX** column opens a detail section beneath the row: sample rate
 on the output row, balance and the equalizer on application rows.
+
+Right-click an application and choose **Hide from List** to remove it from the panel.
+Hidden applications can be restored from **Settings → Hidden Applications**.
 
 ### Metrics
 
@@ -235,9 +239,9 @@ Equalizer −12dB : ratio 0.25   (theory 10^(-12/20) = 0.251)
 
 ## Localization
 
-The interface is currently Turkish only; the code and documentation are English.
-Extracting the UI strings and adding an English localization is the most useful
-contribution available right now, and a good first issue.
+The interface, code, and documentation are currently English. The UI strings have
+not yet been extracted into localization catalogs; contributions adding other
+languages are welcome.
 
 ## Privacy
 

@@ -102,7 +102,7 @@ struct BoostButton: View {
             .background(Circle().fill(isOn ? Theme.accent : Theme.controlBackground))
         }
         .buttonStyle(.plain)
-        .help(isOn ? "Yükseltme açık — tavan %200" : "Yükseltmeyi aç (%200'e kadar)")
+        .help(isOn ? "Boost enabled — 200% ceiling" : "Enable boost (up to 200%)")
     }
 }
 
@@ -138,7 +138,7 @@ struct FavoriteStar: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(isFavorite ? "Favorilerden çıkar" : "Favorilere ekle — kapalıyken de listede kalır")
+        .help(isFavorite ? "Remove from Favorites" : "Add to Favorites — keep it listed while closed")
     }
 }
 
@@ -156,7 +156,7 @@ struct MuteButton: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(isMuted ? "Sesi aç" : "Sesi kapat")
+        .help(isMuted ? "Unmute" : "Mute")
     }
 }
 
@@ -180,8 +180,8 @@ struct ColumnHeader: View {
 
             // The flexible area is the exact counterpart of the row's
             // mute + slider + percentage block.
-            columnLabel("Seviye").frame(maxWidth: .infinity)
-            columnLabel("Yükselt").frame(width: Layout.boostColumnWidth)
+            columnLabel("Level").frame(maxWidth: .infinity)
+            columnLabel("Boost").frame(width: Layout.boostColumnWidth)
             columnLabel(deviceColumnTitle).frame(width: Layout.deviceWidth)
             columnLabel("FX").frame(width: Layout.fxWidth)
         }

@@ -76,20 +76,30 @@ struct MenuBarContentView: View {
 
     private var settingsMenu: some View {
         Menu {
-            Button("Ses Ayarları…") {
+            Button("Sound Settings…") {
                 NSWorkspace.shared.open(
                     URL(string: "x-apple.systempreferences:com.apple.Sound-Settings.extension")!
                 )
             }
-            Button("Bluetooth Ayarları…") {
+            Button("Bluetooth Settings…") {
                 NSWorkspace.shared.open(
                     URL(string: "x-apple.systempreferences:com.apple.BluetoothSettings")!
                 )
             }
             Divider()
-            Button("Tüm Ayarları Sıfırla") { engine.resetAll() }
+            if !engine.hiddenApplications.isEmpty {
+                Menu("Hidden Applications") {
+                    ForEach(engine.hiddenApplications) { item in
+                        Button(item.name) { engine.showApplication(item.id) }
+                    }
+                    Divider()
+                    Button("Show All") { engine.showAllApplications() }
+                }
+                Divider()
+            }
+            Button("Reset All Settings") { engine.resetAll() }
             Divider()
-            Button("Mikser'den Çık") { NSApplication.shared.terminate(nil) }
+            Button("Quit Mikser") { NSApplication.shared.terminate(nil) }
         } label: {
             Image(systemName: "gearshape.fill")
                 .font(.system(size: 13))
@@ -105,7 +115,7 @@ struct MenuBarContentView: View {
     private var systemSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             ColumnHeader(
-                title: "Sistem", deviceColumnTitle: "Cihaz",
+                title: "System", deviceColumnTitle: "Device",
                 isExpanded: systemExpanded
             ) {
                 withAnimation(.easeOut(duration: 0.15)) { systemExpanded.toggle() }
@@ -124,7 +134,7 @@ struct MenuBarContentView: View {
     private var outputRow: some View {
         SystemRow(
             symbol: engine.defaultOutputDevice?.symbolName ?? "hifispeaker.fill",
-            title: "Çıkış",
+            title: "Output",
             volume: engine.systemVolume.map(Double.init),
             onVolumeChange: { engine.setSystemVolume(Float($0)) },
             isMuted: engine.systemMuted,
@@ -148,7 +158,7 @@ struct MenuBarContentView: View {
     private var inputRow: some View {
         SystemRow(
             symbol: "mic.fill",
-            title: "Giriş",
+            title: "Input",
             volume: engine.inputVolume.map(Double.init),
             onVolumeChange: { engine.setInputVolume(Float($0)) },
             isMuted: engine.inputMuted,
@@ -169,7 +179,7 @@ struct MenuBarContentView: View {
     private var effectsRow: some View {
         SystemRow(
             symbol: "bell.fill",
-            title: "Ses Efektleri",
+            title: "Sound Effects",
             volume: effectsDraft ?? engine.effectsVolume.map(Double.init),
             onVolumeChange: { effectsDraft = $0 },
             onVolumeCommit: {
@@ -190,13 +200,13 @@ struct MenuBarContentView: View {
 
     private var sampleRateControl: some View {
         HStack(spacing: 10) {
-            Text("Örnekleme Hızı")
+            Text("Sample Rate")
                 .font(Typography.detailLabel)
                 .frame(width: 110, alignment: .leading)
 
             let rates = engine.availableSampleRates(of: engine.defaultOutputDevice)
             if rates.isEmpty {
-                Text("Bu cihaz bildirmiyor")
+                Text("Not reported by this device")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             } else {
@@ -227,16 +237,18 @@ struct MenuBarContentView: View {
     private var applicationsSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             ColumnHeader(
-                title: "Uygulamalar", deviceColumnTitle: "Sesi Yönlendir",
+                title: "Applications", deviceColumnTitle: "Route Audio",
                 isExpanded: applicationsExpanded
             ) {
                 withAnimation(.easeOut(duration: 0.15)) { applicationsExpanded.toggle() }
             }
 
             if applicationsExpanded {
-                if engine.apps.isEmpty {
+                if engine.visibleApps.isEmpty {
                     SectionCard {
-                        Text("Ses çalan uygulama yok")
+                        Text(engine.apps.isEmpty
+                             ? "No applications are playing audio"
+                             : "All applications are hidden")
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity)
@@ -252,7 +264,7 @@ struct MenuBarContentView: View {
     private var appList: some View {
         ScrollView {
             VStack(spacing: 1) {
-                ForEach(engine.apps) { app in
+                ForEach(engine.visibleApps) { app in
                     AppRowView(app: app, engine: engine, expandedRows: expandedRows)
                 }
             }
@@ -273,9 +285,9 @@ struct MenuBarContentView: View {
     private var addApplicationBar: some View {
         HStack {
             Menu {
-                Button("Uygulama Seç…") { selectApplication() }
+                Button("Choose Application…") { selectApplication() }
                 Divider()
-                Section("Çalışan Uygulamalar") {
+                Section("Running Applications") {
                     ForEach(AudioProcessMonitor.selectableRunningApplications(), id: \.bundleID) { item in
                         Button(item.name) { engine.addFavorite(bundleID: item.bundleID) }
                     }
@@ -283,12 +295,12 @@ struct MenuBarContentView: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "star.fill").font(.system(size: 10))
-                    Text("Uygulama Ekle").font(.system(size: 12))
+                    Text("Add Application").font(.system(size: 12))
                 }
             }
             .menuStyle(.borderlessButton)
             .frame(width: 150)
-            .help("Favori eklenen uygulama ses çalmasa da listede kalır")
+            .help("A favorite remains listed even when it is not playing audio")
 
             Spacer()
         }
@@ -301,7 +313,7 @@ struct MenuBarContentView: View {
         panel.directoryURL = URL(fileURLWithPath: "/Applications")
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
-        panel.prompt = "Ekle"
+        panel.prompt = "Add"
 
         guard panel.runModal() == .OK, let url = panel.url,
               let bundleID = Bundle(url: url)?.bundleIdentifier else { return }
@@ -397,7 +409,7 @@ struct SystemRow<Detail: View>: View {
                 devices: devices,
                 selectedUID: selectedUID,
                 allowsSystemDefault: false,
-                systemDefaultLabel: "Cihaz yok",
+                systemDefaultLabel: "No Device",
                 onSelect: { uid in if let uid { onSelectDevice(uid) } }
             )
 

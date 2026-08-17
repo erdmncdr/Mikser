@@ -71,7 +71,7 @@ struct AppRowView: View {
                 devices: engine.outputDevices,
                 selectedUID: settings.outputDeviceUID,
                 allowsSystemDefault: true,
-                systemDefaultLabel: "Sistemi izle",
+                systemDefaultLabel: "Follow System",
                 onSelect: { engine.setOutputDevice($0, for: app.id) }
             )
 
@@ -81,7 +81,7 @@ struct AppRowView: View {
                 }
             }
             .frame(width: Layout.fxWidth)
-            .help(isExpanded ? "Ayrıntıları gizle" : "\(app.name) ayrıntıları")
+            .help(isExpanded ? "Hide details" : "Details for \(app.name)")
         }
         // Applications that are not running are in the list because they are
         // favourites; their settings are kept and applied once they start playing.
@@ -90,13 +90,17 @@ struct AppRowView: View {
         .rowBackground(isHovering: isHovering)
         .onHover { isHovering = $0 }
         .contextMenu {
-            Button("%100'e dön") { engine.setVolume(1, for: app.id) }
-            Button(app.isFavorite ? "Favorilerden çıkar" : "Favorilere ekle") {
+            Button("Return to 100%") { engine.setVolume(1, for: app.id) }
+            Button(app.isFavorite ? "Remove from Favorites" : "Add to Favorites") {
                 engine.toggleFavorite(app.id)
+            }
+            Button("Hide from List") {
+                expandedRows.remove(app.id)
+                engine.hideApplication(app.id)
             }
             if isControlled {
                 Divider()
-                Button("Mikser'den çıkar") { engine.reset(app.id) }
+                Button("Remove from Mikser") { engine.reset(app.id) }
             }
         }
     }
@@ -106,18 +110,18 @@ struct AppRowView: View {
     private var detailPanel: some View {
         DetailPanel {
             if !app.isConnected {
-                Text("\(app.name) şu anda ses çalmıyor. Ayarlar kaydedilir ve çalmaya başlayınca uygulanır.")
+                Text("\(app.name) is not playing audio. Its settings are saved and will apply when playback starts.")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack(spacing: 10) {
-                Text("Denge")
+                Text("Balance")
                     .font(Typography.detailLabel)
                     .frame(width: 76, alignment: .leading)
 
-                Text("S").font(.system(size: 10)).foregroundStyle(.secondary)
+                Text("L").font(.system(size: 10)).foregroundStyle(.secondary)
 
                 Slider(
                     value: Binding(
@@ -146,7 +150,7 @@ struct AppRowView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(settings.balance == 0)
-                .help("Dengeyi ortala")
+                .help("Center balance")
             }
 
             Divider().opacity(0.5)
@@ -157,8 +161,8 @@ struct AppRowView: View {
 
     private var balanceLabel: String {
         let percent = Int((abs(settings.balance) * 100).rounded())
-        if percent == 0 { return "Ortada" }
-        return settings.balance < 0 ? "Sol %\(percent)" : "Sağ %\(percent)"
+        if percent == 0 { return "Center" }
+        return settings.balance < 0 ? "Left \(percent)%" : "Right \(percent)%"
     }
 
     private var icon: some View {

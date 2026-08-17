@@ -58,6 +58,11 @@ struct AppSettings: Codable, Equatable {
     }
 }
 
+struct HiddenApplication: Identifiable, Equatable {
+    let id: String
+    let name: String
+}
+
 @MainActor
 @Observable
 final class MixerEngine {
@@ -85,6 +90,21 @@ final class MixerEngine {
     /// created for that application at all — zero latency, zero CPU.
     private(set) var settings: [String: AppSettings] = [:]
     private(set) var favorites: Set<String> = []
+    private(set) var hiddenApps: Set<String> = []
+
+    var visibleApps: [AudioApp] {
+        apps.filter { !hiddenApps.contains($0.id) }
+    }
+
+    var hiddenApplications: [HiddenApplication] {
+        hiddenApps.map { appID in
+            let name = apps.first(where: { $0.id == appID })?.name
+                ?? AudioProcessMonitor.appInfo(forBundleID: appID)?.name
+                ?? appID
+            return HiddenApplication(id: appID, name: name)
+        }
+        .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
 
     // MARK: Internals
 
@@ -96,6 +116,7 @@ final class MixerEngine {
 
     private let settingsKey = "io.github.erdmncdr.mikser.settings"
     private let favoritesKey = "io.github.erdmncdr.mikser.favorites"
+    private let hiddenAppsKey = "io.github.erdmncdr.mikser.hiddenApps"
 
     // MARK: Lifecycle
 
@@ -214,6 +235,7 @@ final class MixerEngine {
         for tap in taps.values { tap.stop() }
         taps.removeAll()
         settings.removeAll()
+        hiddenApps.removeAll()
         levels.removeAll()
         lastError = nil
         savePersisted()
@@ -244,6 +266,7 @@ final class MixerEngine {
             favorites.remove(appID)
         } else {
             favorites.insert(appID)
+            hiddenApps.remove(appID)
         }
         savePersisted()
         refreshApps()
@@ -251,6 +274,28 @@ final class MixerEngine {
 
     func addFavorite(bundleID: String) {
         favorites.insert(bundleID)
+        hiddenApps.remove(bundleID)
+        savePersisted()
+        refreshApps()
+    }
+
+    // MARK: Visibility
+
+    /// Hiding only removes the row from the panel. Existing routing and audio
+    /// settings keep working until the application is explicitly reset.
+    func hideApplication(_ appID: String) {
+        hiddenApps.insert(appID)
+        savePersisted()
+    }
+
+    func showApplication(_ appID: String) {
+        hiddenApps.remove(appID)
+        savePersisted()
+        refreshApps()
+    }
+
+    func showAllApplications() {
+        hiddenApps.removeAll()
         savePersisted()
         refreshApps()
     }
@@ -478,9 +523,9 @@ final class MixerEngine {
         if let caError = error as? CoreAudioError,
            caError.operation.contains("CreateProcessTap") {
             return """
-            \(app) yakalanamadı (\(caError.status) '\(caError.status.fourCharCode)').
-            Sistem Ayarları → Gizlilik ve Güvenlik → Ekran ve Sistem Sesi Kaydı \
-            bölümünden Mikser'e izin verildiğinden emin olun.
+            Could not capture \(app) (\(caError.status) '\(caError.status.fourCharCode)').
+            Make sure Mikser is allowed in System Settings → Privacy & Security → \
+            Screen & System Audio Recording.
             """
         }
         return error.localizedDescription
@@ -496,6 +541,9 @@ final class MixerEngine {
         if let stored = UserDefaults.standard.stringArray(forKey: favoritesKey) {
             favorites = Set(stored)
         }
+        if let stored = UserDefaults.standard.stringArray(forKey: hiddenAppsKey) {
+            hiddenApps = Set(stored)
+        }
     }
 
     private func savePersisted() {
@@ -503,5 +551,6 @@ final class MixerEngine {
             UserDefaults.standard.set(data, forKey: settingsKey)
         }
         UserDefaults.standard.set(Array(favorites), forKey: favoritesKey)
+        UserDefaults.standard.set(Array(hiddenApps), forKey: hiddenAppsKey)
     }
 }

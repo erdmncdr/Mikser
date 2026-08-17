@@ -77,13 +77,13 @@ struct EqualizerView: View {
             .controlSize(.mini)
             .labelsHidden()
 
-            Text("10 Bantlı Ekolayzer")
+            Text("10-Band Equalizer")
                 .font(Typography.detailLabel)
                 .foregroundStyle(settings.isEnabled ? .primary : .secondary)
 
             Spacer()
 
-            Text("Hazır Ayar")
+            Text("Preset")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
 
@@ -93,7 +93,7 @@ struct EqualizerView: View {
             )) {
                 // Nothing matches a preset once the user has moved bands by hand.
                 if settings.preset == nil {
-                    Text("Özel").tag(EqualizerPreset?.none)
+                    Text("Custom").tag(EqualizerPreset?.none)
                 }
                 ForEach(EqualizerPreset.allCases, id: \.self) { preset in
                     Text(preset.displayName).tag(EqualizerPreset?.some(preset))
@@ -114,7 +114,7 @@ struct EqualizerView: View {
             }
             .buttonStyle(.plain)
             .disabled(settings.isFlat)
-            .help("Tüm bantları sıfırla")
+            .help("Reset all bands")
         }
     }
 
