@@ -108,6 +108,25 @@ MIKSER_SIGN_ID="Mikser Dev" ./build.sh
 Every successful GitHub Actions run also publishes a zipped, ad-hoc-signed
 `Mikser.app` bundle as the **Mikser-macOS** workflow artifact.
 
+## Installing a release build
+
+Releases are signed ad-hoc rather than with an Apple Developer ID. macOS
+quarantines anything downloaded from the internet, and Gatekeeper refuses to launch
+a quarantined app that carries no Developer ID signature, so the first launch fails
+with a "Mikser is damaged and can't be opened" alert.
+
+Move the app where you want it, then clear the quarantine attribute once:
+
+```bash
+xattr -d com.apple.quarantine /Applications/Mikser.app
+```
+
+Alternatively, attempt to open it and then allow it from
+**System Settings → Privacy & Security → Open Anyway**.
+
+Building from source avoids this entirely — a locally built bundle is never
+quarantined.
+
 ## Interface
 
 The panel has two sections — **System** and **Applications** — each inside a card
