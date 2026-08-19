@@ -91,7 +91,7 @@ new helper appears, the tap is rebuilt automatically.
 ## Build and run
 
 ```bash
-./build.sh && open Mikser.app
+./build.sh && open build/Mikser.app
 ```
 
 A slider mark appears in the menu bar; the panel opens from there.
@@ -224,13 +224,13 @@ code signature, audio capture permission is granted to the same identity as the 
 
 ```bash
 # Open the menu bar panel in an ordinary window (layout work, screenshots)
-./Mikser.app/Contents/MacOS/Mikser --preview
+./build/Mikser.app/Contents/MacOS/Mikser --preview
 
 # Write the five menu bar level states to PNGs, scaled up
-./Mikser.app/Contents/MacOS/Mikser --dump-icons ~/Desktop
+./build/Mikser.app/Contents/MacOS/Mikser --dump-icons ~/Desktop
 
 # Verify the audio chain end to end
-./Mikser.app/Contents/MacOS/Mikser --selftest [target]
+./build/Mikser.app/Contents/MacOS/Mikser --selftest [target]
 ```
 
 The `--preview` window sizes itself exactly the way the menu bar panel does
@@ -251,7 +251,7 @@ r=48000; w=wave.open('/tmp/tone500.wav','w'); w.setnchannels(2); w.setsampwidth(
 w.writeframes(b''.join(struct.pack('<hh', v, v) for v in (int(0.1*32767*math.sin(2*math.pi*500*n/r)) for n in range(r*60))))
 w.close()"
 
-afplay /tmp/tone500.wav & sleep 2; ./Mikser.app/Contents/MacOS/Mikser --selftest "pid:$!"
+afplay /tmp/tone500.wav & sleep 2; ./build/Mikser.app/Contents/MacOS/Mikser --selftest "pid:$!"
 ```
 
 Expected output:

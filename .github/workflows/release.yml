@@ -34,7 +34,7 @@ jobs:
         run: ./build.sh
 
       - name: Verify application bundle
-        run: codesign --verify --deep --strict --verbose=2 Mikser.app
+        run: codesign --verify --deep --strict --verbose=2 build/Mikser.app
 
       - name: Package application bundle
         id: archive
@@ -44,7 +44,7 @@ jobs:
           release_dir="$RUNNER_TEMP/mikser-release"
           mkdir -p "$release_dir"
           archive="Mikser-${{ steps.version.outputs.version }}.zip"
-          ditto -c -k --sequesterRsrc --keepParent Mikser.app "$release_dir/$archive"
+          ditto -c -k --sequesterRsrc --keepParent build/Mikser.app "$release_dir/$archive"
           echo "directory=$release_dir" >> "$GITHUB_OUTPUT"
           echo "name=$archive" >> "$GITHUB_OUTPUT"
 

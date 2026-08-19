@@ -8,7 +8,8 @@ cd "$(dirname "$0")"
 
 APP_NAME="Mikser"
 BUNDLE_ID="io.github.erdmncdr.mikser"
-APP="$APP_NAME.app"
+BUILD_DIR="build"
+APP="$BUILD_DIR/$APP_NAME.app"
 
 # Signing identity: MIKSER_SIGN_ID if set, otherwise an ad-hoc signature.
 # An ad-hoc signature changes on every build, so macOS may ask for the audio
@@ -27,6 +28,10 @@ echo "==> Building (release)"
 swift build -c release
 
 echo "==> Assembling the application bundle"
+mkdir -p "$BUILD_DIR"
+# Keeps Spotlight from indexing the build product, so it does not show up as a
+# second copy of Mikser alongside the one installed in /Applications.
+touch "$BUILD_DIR/.metadata_never_index"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 cp ".build/release/$APP_NAME" "$APP/Contents/MacOS/$APP_NAME"
