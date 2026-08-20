@@ -32,7 +32,13 @@ struct EqualizerSettings: Codable, Equatable {
 struct AppSettings: Codable, Equatable {
     var volume: Float = 1
     var isMuted: Bool = false
-    /// While on, volume can go to 200%; otherwise it is capped at 100%.
+    /// While on, volume can go to 500%; otherwise it is capped at 100%.
+    ///
+    /// 500 rather than a lower ceiling because the soft limiter already bounds the
+    /// output at full scale, so a lower cap protects nothing: on loud material the
+    /// level is pinned long before 200% and further gain only adds distortion. The
+    /// extra range only becomes usable on quiet sources, where it stays clean —
+    /// a -20 dBFS recording measures 0% THD even at 500%.
     var isBoosted: Bool = false
     /// -1 is hard left, 0 centre, +1 hard right.
     var balance: Float = 0
@@ -40,7 +46,7 @@ struct AppSettings: Codable, Equatable {
     /// nil means the system default output is used.
     var outputDeviceUID: String?
 
-    var maximumVolume: Float { isBoosted ? 2 : 1 }
+    var maximumVolume: Float { isBoosted ? 5 : 1 }
 
     init() {}
 

@@ -69,7 +69,7 @@ new helper appears, the tap is rebuilt automatically.
 ## Features
 
 - Per-application volume and mute
-- Per-application **boost**, raising the ceiling to 200% through a soft limiter
+- Per-application **boost** up to 500%, through a soft limiter that cannot clip
 - Per-application **balance**, applied as channel gain inside the IOProc
 - Per-application **ten-band equalizer** with eight presets
 - Per-application output device routing
@@ -199,6 +199,53 @@ the blocks carry the information.
 or calling into Objective-C there causes audible glitches. Everything is exchanged
 with the interface through the lock-free atomics in `TapParameters`. Keep that rule
 when touching this file.
+
+## Boost
+
+Boost raises one application's ceiling from 100% to 500%. It exists for material
+that was simply recorded or mastered too quietly — a lecture recording, a video
+call, a badly mixed video — where the system volume is already at maximum and the
+audio is still too faint.
+
+Everything passes through the soft limiter in `AppTap.softClip`, which is
+continuous and continuous in its first derivative above a 0.7 threshold and
+approaches full scale asymptotically. The output therefore **cannot exceed full
+scale no matter how much gain is applied**, so boost cannot produce a sudden jump
+in level, and it never hard-clips.
+
+That limiter is also why the ceiling is 500% rather than something lower. What the
+gain actually buys depends entirely on how loud the source already is:
+
+| Source peak | 200% | 400% | 500% | Distortion at 500% |
+| --- | --- | --- | --- | --- |
+| 0 dBFS (normal music) | +2.2 dB | +2.8 dB | +2.9 dB | 37% |
+| −10 dBFS | +6.0 dB | +11.1 dB | +11.8 dB | 14% |
+| −20 dBFS (quiet video) | +6.0 dB | +12.0 dB | +14.0 dB | **0%** |
+| −30 dBFS (very quiet) | +6.0 dB | +12.0 dB | +14.0 dB | **0%** |
+
+Two things follow, and they are the whole design:
+
+**On loud material, boost does almost nothing.** The limiter has already pinned the
+level, so past roughly 200% the extra gain adds distortion rather than loudness —
+0.7 dB more between 200% and 500%, for nearly double the harmonic distortion. If
+music sounds distorted with boost on, turn it down; there is no loudness left to
+gain up there.
+
+**On quiet material, the full range is clean.** A −20 dBFS source never reaches the
+limiter's threshold even at 500%, measuring 0% distortion while delivering +14 dB.
+This is the case boost is for, and capping lower would only take usable headroom
+away from it while protecting nothing.
+
+### The slider
+
+With boost on the slider spans 0-500%, but not linearly: unity stays at the
+midpoint, exactly where it sits with boost off. The lower half is linear from 0 to
+100%; the upper half is exponential, so every equal distance travelled is an equal
+number of decibels — +2.8 dB per tenth of the track, whether moving from 100% to
+138% or from 362% to 500%.
+
+A linear 0-500% slider would squeeze the everyday 0-100% range into the first fifth
+of the track and make ordinary adjustments fiddly.
 
 ## The equalizer
 

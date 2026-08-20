@@ -51,6 +51,7 @@ struct AppRowView: View {
                 value: Double(settings.volume),
                 range: 0...Double(settings.maximumVolume),
                 isDisabled: settings.isMuted,
+                taper: settings.isBoosted ? .boost : .linear,
                 onChange: { engine.setVolume(Float($0), for: app.id) }
             )
 

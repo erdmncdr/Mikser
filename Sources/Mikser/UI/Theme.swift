@@ -105,10 +105,55 @@ struct LevelBar: View {
 /// A compact horizontal fader with a high-contrast thumb. Native macOS sliders
 /// inherit control chrome that varies by OS release and looks out of place inside
 /// the dark studio surfaces.
+/// How a slider position maps to its value.
+///
+/// A boosted volume slider spans 0-500%, and with a straight linear mapping the
+/// everyday 0-100% region would be squeezed into the first fifth of the track.
+///
+/// `.boost` keeps unity at the midpoint — where it already sits today — and gives
+/// the half above it a constant number of decibels per pixel, which is how a gain
+/// control should behave: the step from 100% to 120% takes as much travel as the
+/// step from 400% to 480%.
+enum SliderTaper {
+    case linear
+    case boost
+
+    func value(atPosition position: Double, in range: ClosedRange<Double>) -> Double {
+        switch self {
+        case .linear:
+            return range.lowerBound + position * (range.upperBound - range.lowerBound)
+        case .boost:
+            let maximum = range.upperBound
+            guard maximum > 1 else {
+                return range.lowerBound + position * (maximum - range.lowerBound)
+            }
+            if position <= 0.5 { return position * 2 }
+            return pow(maximum, (position - 0.5) * 2)
+        }
+    }
+
+    func position(forValue value: Double, in range: ClosedRange<Double>) -> Double {
+        switch self {
+        case .linear:
+            let span = max(0.0001, range.upperBound - range.lowerBound)
+            return (value - range.lowerBound) / span
+        case .boost:
+            let maximum = range.upperBound
+            guard maximum > 1 else {
+                let span = max(0.0001, maximum - range.lowerBound)
+                return (value - range.lowerBound) / span
+            }
+            if value <= 1 { return value / 2 }
+            return 0.5 + log(value) / log(maximum) / 2
+        }
+    }
+}
+
 struct StudioSlider: View {
     let value: Double
     let range: ClosedRange<Double>
     var isDisabled = false
+    var taper: SliderTaper = .linear
     let onChange: (Double) -> Void
     var onEditingChanged: ((Bool) -> Void)?
 
@@ -119,8 +164,7 @@ struct StudioSlider: View {
     var body: some View {
         GeometryReader { proxy in
             let usableWidth = max(1, proxy.size.width - knobSize)
-            let span = max(0.0001, range.upperBound - range.lowerBound)
-            let fraction = min(1, max(0, (value - range.lowerBound) / span))
+            let fraction = min(1, max(0, taper.position(forValue: value, in: range)))
             let knobX = knobSize / 2 + usableWidth * CGFloat(fraction)
 
             ZStack(alignment: .leading) {
@@ -152,7 +196,7 @@ struct StudioSlider: View {
                         let position = min(CGFloat(1), max(CGFloat(0),
                             (gesture.location.x - knobSize / 2) / usableWidth
                         ))
-                        onChange(range.lowerBound + Double(position) * span)
+                        onChange(taper.value(atPosition: Double(position), in: range))
                     }
                     .onEnded { _ in
                         guard !isDisabled else { return }
@@ -167,10 +211,12 @@ struct StudioSlider: View {
         .accessibilityValue("\(Int((value * 100).rounded())) percent")
         .accessibilityAdjustableAction { direction in
             guard !isDisabled else { return }
-            let step = (range.upperBound - range.lowerBound) / 20
+            // Stepping in position space keeps the increments even under a taper.
+            let current = taper.position(forValue: value, in: range)
+            let step = 0.05
             switch direction {
-            case .increment: onChange(min(range.upperBound, value + step))
-            case .decrement: onChange(max(range.lowerBound, value - step))
+            case .increment: onChange(taper.value(atPosition: min(1, current + step), in: range))
+            case .decrement: onChange(taper.value(atPosition: max(0, current - step), in: range))
             @unknown default: break
             }
         }
@@ -195,7 +241,7 @@ struct BoostButton: View {
             .background(Circle().fill(isOn ? Theme.accent : Theme.controlBackground))
         }
         .buttonStyle(.plain)
-        .help(isOn ? "Boost enabled — 200% ceiling" : "Enable boost (up to 200%)")
+        .help(isOn ? "Boost enabled — 500% ceiling" : "Enable boost (up to 500%)")
     }
 }
 
