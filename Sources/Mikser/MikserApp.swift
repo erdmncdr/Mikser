@@ -40,7 +40,12 @@ struct MikserApp: App {
 /// So the policy is raised to `.regular` from Sparkle's own delegate callbacks,
 /// which fire immediately before any update UI is shown, and lowered again when
 /// the session ends. The Dock icon appears for the duration of the check.
-final class UpdateController: NSObject, SPUStandardUserDriverDelegate {
+/// Main-actor isolated because every method here touches `NSApp` and Sparkle's
+/// user driver, both of which are main-thread only. The isolation is what the code
+/// already relied on; annotating it lets the compiler enforce that rather than
+/// leaving it to convention.
+@MainActor
+final class UpdateController: NSObject, @preconcurrency SPUStandardUserDriverDelegate {
     static let shared = UpdateController()
 
     private var updaterController: SPUStandardUpdaterController!
@@ -48,6 +53,10 @@ final class UpdateController: NSObject, SPUStandardUserDriverDelegate {
     /// Non-nil only while update UI is on screen; also guards against raising the
     /// policy twice when several callbacks fire in one session.
     private var policyBeforeUpdateUI: NSApplication.ActivationPolicy?
+
+    /// Bounds the polling in `raiseUpdateWindowWhenItAppears`.
+    private var raiseAttempts = 0
+    private var raiseTimer: Timer?
 
     private override init() {
         super.init()
@@ -124,13 +133,24 @@ final class UpdateController: NSObject, SPUStandardUserDriverDelegate {
         // fetch means it can be a moment away, so poll briefly instead of trying
         // once. The timer is added to `.modalPanel` as well because an NSAlert runs
         // its own modal loop and would otherwise starve the default mode.
-        var attempts = 0
-        let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] timer in
-            attempts += 1
-            if self?.raiseUpdateWindow() == true || attempts >= 40 {
-                timer.invalidate()
+        raiseAttempts = 0
+        raiseTimer?.invalidate()
+
+        // The timer is held in a property rather than invalidated through the
+        // closure's parameter, which would mean sending a non-Sendable Timer
+        // across an isolation boundary.
+        let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
+            // Fires on the main run loop, so this assumption always holds.
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.raiseAttempts += 1
+                if self.raiseUpdateWindow() || self.raiseAttempts >= 40 {
+                    self.raiseTimer?.invalidate()
+                    self.raiseTimer = nil
+                }
             }
         }
+        raiseTimer = timer
         RunLoop.main.add(timer, forMode: .common)
         RunLoop.main.add(timer, forMode: .modalPanel)
     }
@@ -168,12 +188,13 @@ final class UpdateController: NSObject, SPUStandardUserDriverDelegate {
     }
 }
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Starting the shared controller here also enables scheduled checks.
     private let updateController = UpdateController.shared
 
     func applicationWillTerminate(_ notification: Notification) {
         // Destroy taps explicitly so application audio returns straight to the hardware.
-        MainActor.assumeIsolated { MixerEngine.shared.shutdown() }
+        MixerEngine.shared.shutdown()
     }
 }

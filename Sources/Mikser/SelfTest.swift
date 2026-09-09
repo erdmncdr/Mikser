@@ -32,6 +32,19 @@ enum SelfTest {
         }
         print("Output device: \(output.name) — \(output.outputChannels) channels, uid=\(output.uid)\n")
 
+        // Exercises the property-write path (device volume, mute, sample rate,
+        // default-device selection all go through the same generic helper) with a
+        // round trip that sets the value it already has.
+        if let level = AudioDevices.volume(of: output.id) {
+            AudioDevices.setVolume(level, for: output.id)
+            let readBack = AudioDevices.volume(of: output.id) ?? -1
+            let ok = abs(readBack - level) < 0.01
+            print("Property write : \(ok ? "OK" : "FAILED") (round-tripped \(Int(level * 100))%)")
+        } else {
+            print("Property write : skipped, device reports no software volume")
+        }
+        print("")
+
         let apps = AudioProcessMonitor.currentApps(favorites: [])
         print("--- Grouped applications (\(apps.count)) ---")
         for app in apps {
@@ -224,6 +237,8 @@ enum SelfTest {
         var buffer = [CChar](repeating: 0, count: Int(MAXPATHLEN))
         let length = proc_pidpath(pid, &buffer, UInt32(MAXPATHLEN))
         guard length > 0 else { return nil }
-        return URL(fileURLWithPath: String(cString: buffer)).lastPathComponent
+        let path = String(decoding: buffer.prefix(Int(length)).map { UInt8(bitPattern: $0) },
+                          as: UTF8.self)
+        return URL(fileURLWithPath: path).lastPathComponent
     }
 }

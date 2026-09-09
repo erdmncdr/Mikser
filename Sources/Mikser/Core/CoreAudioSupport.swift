@@ -86,10 +86,15 @@ extension AudioObjectID {
         value: T
     ) throws {
         var addr = Self.address(selector, scope: scope, element: element)
-        var value = value
+        // A typed allocation rather than `&value`: taking a raw pointer to a
+        // generic binding is only valid while T is trivial, and the compiler
+        // cannot know that here.
+        let storage = UnsafeMutablePointer<T>.allocate(capacity: 1)
+        defer { storage.deallocate() }
+        storage.initialize(to: value)
         try caTry("AudioObjectSetPropertyData(\(selector.fourCharCode))") {
             AudioObjectSetPropertyData(
-                self, &addr, 0, nil, UInt32(MemoryLayout<T>.size), &value
+                self, &addr, 0, nil, UInt32(MemoryLayout<T>.size), storage
             )
         }
     }
