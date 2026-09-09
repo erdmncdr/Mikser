@@ -86,4 +86,5 @@ jobs:
             "$RELEASE_DIR/$ARCHIVE_NAME" \
             "$RELEASE_DIR/appcast.xml" \
             --title "Mikser $RELEASE_VERSION" \
+            --notes-file .github/release-notes-header.md \
             --generate-notes
