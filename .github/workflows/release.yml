@@ -13,7 +13,7 @@ jobs:
     runs-on: macos-15
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Validate tag and version
         id: version
@@ -39,11 +39,13 @@ jobs:
       - name: Package application bundle
         id: archive
         shell: bash
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
           release_dir="$RUNNER_TEMP/mikser-release"
           mkdir -p "$release_dir"
-          archive="Mikser-${{ steps.version.outputs.version }}.zip"
+          archive="Mikser-$RELEASE_VERSION.zip"
           ditto -c -k --sequesterRsrc --keepParent build/Mikser.app "$release_dir/$archive"
           echo "directory=$release_dir" >> "$GITHUB_OUTPUT"
           echo "name=$archive" >> "$GITHUB_OUTPUT"
@@ -51,6 +53,8 @@ jobs:
       - name: Generate signed Sparkle appcast
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_DIR: ${{ steps.archive.outputs.directory }}
         shell: bash
         run: |
           set -euo pipefail
@@ -62,20 +66,24 @@ jobs:
           test -x "$generator"
           printf '%s' "$SPARKLE_PRIVATE_KEY" | "$generator" \
             --ed-key-file - \
-            --download-url-prefix "https://github.com/erdmncdr/Mikser/releases/download/${{ steps.version.outputs.tag }}/" \
+            --download-url-prefix "https://github.com/erdmncdr/Mikser/releases/download/$RELEASE_TAG/" \
             --link "https://github.com/erdmncdr/Mikser" \
             --maximum-versions 1 \
-            "${{ steps.archive.outputs.directory }}"
-          test -s "${{ steps.archive.outputs.directory }}/appcast.xml"
+            "$RELEASE_DIR"
+          test -s "$RELEASE_DIR/appcast.xml"
 
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_DIR: ${{ steps.archive.outputs.directory }}
+          ARCHIVE_NAME: ${{ steps.archive.outputs.name }}
         shell: bash
         run: |
           set -euo pipefail
-          gh release create "${{ steps.version.outputs.tag }}" \
-            "${{ steps.archive.outputs.directory }}/${{ steps.archive.outputs.name }}" \
-            "${{ steps.archive.outputs.directory }}/appcast.xml" \
-            --title "Mikser ${{ steps.version.outputs.version }}" \
+          gh release create "$RELEASE_TAG" \
+            "$RELEASE_DIR/$ARCHIVE_NAME" \
+            "$RELEASE_DIR/appcast.xml" \
+            --title "Mikser $RELEASE_VERSION" \
             --generate-notes
