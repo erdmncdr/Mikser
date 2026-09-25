@@ -6,27 +6,33 @@ import AppKit
 import SwiftUI
 
 enum Theme {
-    /// A restrained studio palette: neutral surfaces keep the meters and active
-    /// controls visually dominant without imitating another application's chrome.
-    static let accent = Color(nsColor: NSColor(name: nil) { appearance in
-        appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            ? NSColor(srgbRed: 0.05, green: 0.78, blue: 0.52, alpha: 1)
-            : NSColor(srgbRed: 0.02, green: 0.57, blue: 0.36, alpha: 1)
-    })
+    /// The mint of the application icon, tuned for contrast on each appearance.
+    static let accent = adaptive(
+        dark: NSColor(srgbRed: 0.16, green: 0.84, blue: 0.64, alpha: 1),
+        light: NSColor(srgbRed: 0.02, green: 0.58, blue: 0.43, alpha: 1)
+    )
+    /// Gain above 100%. Amber rather than the accent, because audio past unity is
+    /// the one state that deserves a second look.
+    static let boost = adaptive(
+        dark: NSColor(srgbRed: 1.0, green: 0.71, blue: 0.20, alpha: 1),
+        light: NSColor(srgbRed: 0.85, green: 0.50, blue: 0.0, alpha: 1)
+    )
+    static let muted = Color(nsColor: .systemRed)
 
-    static let panelBackground = adaptive(
-        dark: NSColor(srgbRed: 0.115, green: 0.12, blue: 0.13, alpha: 1),
-        light: NSColor(srgbRed: 0.94, green: 0.945, blue: 0.955, alpha: 1)
+    /// Only used where the window has no material behind it (the preview window
+    /// and snapshots). In the menu bar the panel sits on the system's own
+    /// translucent popover material.
+    static let panelFallback = adaptive(
+        dark: NSColor(srgbRed: 0.16, green: 0.165, blue: 0.175, alpha: 1),
+        light: NSColor(srgbRed: 0.925, green: 0.93, blue: 0.94, alpha: 1)
     )
-    static let sectionBackground = adaptive(
-        dark: NSColor(srgbRed: 0.155, green: 0.16, blue: 0.17, alpha: 1),
-        light: NSColor.white
-    )
-    static let sectionBorder = Color.primary.opacity(0.14)
-    static let rowHighlight = Color.primary.opacity(0.065)
-    static let controlBackground = Color.primary.opacity(0.085)
-    static let controlBorder = Color.primary.opacity(0.08)
-    static let detailBackground = Color.primary.opacity(0.045)
+    static let groupFill = Color.primary.opacity(0.05)
+    static let groupStroke = Color.primary.opacity(0.07)
+    static let rowHighlight = Color.primary.opacity(0.06)
+    static let controlFill = Color.primary.opacity(0.08)
+    static let controlFillHover = Color.primary.opacity(0.13)
+    static let track = Color.primary.opacity(0.12)
+    static let hairline = Color.primary.opacity(0.08)
 
     private static func adaptive(dark: NSColor, light: NSColor) -> Color {
         Color(nsColor: NSColor(name: nil) { appearance in
@@ -35,85 +41,46 @@ enum Theme {
     }
 }
 
-/// The single source of truth that keeps rows and column headers aligned.
-/// The slider is flexible; every other column has a fixed width.
+/// Every row shares these column widths; the fader takes whatever is left.
 enum Layout {
-    static let panelWidth: CGFloat = 730
-    static let rowSpacing: CGFloat = 8
-    static let rowVerticalPadding: CGFloat = 8
-    static var standardRowHeight: CGFloat { 34 + rowVerticalPadding * 2 }
+    static let panelWidth: CGFloat = 640
+    static let panelPadding: CGFloat = 12
+    static let columnSpacing: CGFloat = 10
 
-    static let starWidth: CGFloat = 20
-    static let meterWidth: CGFloat = 4
-    static let iconSize: CGFloat = 26
-    static let nameWidth: CGFloat = 120
+    static let iconSize: CGFloat = 28
+    static let nameWidth: CGFloat = 170
     static let muteWidth: CGFloat = 22
-    static let percentWidth: CGFloat = 46
-    /// The button stays narrow, but the column is wide enough to fit its header
-    /// on one line.
-    static let boostWidth: CGFloat = 30
-    static let boostColumnWidth: CGFloat = 48
-    static let deviceWidth: CGFloat = 184
-    static let fxWidth: CGFloat = 28
+    static let percentWidth: CGFloat = 44
+    static let boostWidth: CGFloat = 26
+    static let chevronWidth: CGFloat = 24
 
-    /// Card (10) plus the row's outer (4) and inner (10) padding. The header row
-    /// uses this too.
-    static let contentInset: CGFloat = 16
-    static let cardInset: CGFloat = 8
-    static let rowOuterPadding: CGFloat = 4
-    static let rowInnerPadding: CGFloat = 10
-
-    /// The section name in the header must be exactly as wide as the row's
-    /// star / meter / icon / name block.
-    static var leadingBlockWidth: CGFloat {
-        starWidth + meterWidth + iconSize + nameWidth + rowSpacing * 3
-    }
+    static let rowHorizontalPadding: CGFloat = 10
+    static let rowVerticalPadding: CGFloat = 7
+    /// A row's natural height: the two-line name block plus padding.
+    static let rowHeight: CGFloat = 32 + rowVerticalPadding * 2
+    static let groupRadius: CGFloat = 12
 }
 
 enum Typography {
-    static let sectionTitle = Font.system(size: 15, weight: .bold)
-    static let columnLabel = Font.system(size: 11, weight: .semibold)
-    static let rowName = Font.system(size: 14, weight: .medium)
-    static let percent = Font.system(size: 13, weight: .semibold).monospacedDigit()
+    static let title = Font.system(size: 15, weight: .semibold)
+    static let sectionTitle = Font.system(size: 13, weight: .semibold)
+    static let rowName = Font.system(size: 13, weight: .medium)
+    static let rowDetail = Font.system(size: 11)
+    static let percent = Font.system(size: 12, weight: .medium).monospacedDigit()
     static let detailLabel = Font.system(size: 12, weight: .medium)
+    static let caption = Font.system(size: 11)
 }
 
-// MARK: - Row components
+// MARK: - Fader
 
-/// The thin vertical level meter down the left edge of a row.
-struct LevelBar: View {
-    let level: Float
-    let isActive: Bool
-    var warnsAtPeak = true
-
-    var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .bottom) {
-                Capsule().fill(Color.primary.opacity(0.10))
-                if isActive {
-                    Capsule()
-                        .fill(warnsAtPeak && level > 0.92 ? Color.orange : Theme.accent)
-                        .frame(height: proxy.size.height * CGFloat(min(1, max(0, level))))
-                        .animation(.linear(duration: 0.08), value: level)
-                }
-            }
-        }
-        .frame(width: Layout.meterWidth, height: 30)
-    }
-}
-
-/// A compact horizontal fader with a high-contrast thumb. Native macOS sliders
-/// inherit control chrome that varies by OS release and looks out of place inside
-/// the dark studio surfaces.
-/// How a slider position maps to its value.
+/// How a fader position maps to its value.
 ///
-/// A boosted volume slider spans 0-500%, and with a straight linear mapping the
+/// A boosted volume fader spans 0-500%, and with a straight linear mapping the
 /// everyday 0-100% region would be squeezed into the first fifth of the track.
 ///
-/// `.boost` keeps unity at the midpoint — where it already sits today — and gives
-/// the half above it a constant number of decibels per pixel, which is how a gain
-/// control should behave: the step from 100% to 120% takes as much travel as the
-/// step from 400% to 480%.
+/// `.boost` keeps unity at the midpoint and gives the half above it a constant
+/// number of decibels per pixel, which is how a gain control should behave: the
+/// step from 100% to 120% takes as much travel as the step from 400% to 480%.
 enum SliderTaper {
     case linear
     case boost
@@ -149,41 +116,70 @@ enum SliderTaper {
     }
 }
 
-struct StudioSlider: View {
+/// The horizontal fader, and the panel's one expressive element: the track
+/// doubles as the level meter.
+///
+/// When a `level` is supplied (only applications Mikser is processing have one),
+/// the fill up to the knob is drawn dim and lights up as far as the signal
+/// reaches, so a playing application visibly pulses. Past 100% the fill turns
+/// amber to mark boosted gain.
+struct Fader: View {
     let value: Double
     let range: ClosedRange<Double>
     var isDisabled = false
     var taper: SliderTaper = .linear
+    /// Post-gain peak level, 0-1. nil when there is nothing to meter.
+    var level: Float?
+    /// Where the fill starts. A balance control fills out from its centre.
+    var origin: Double?
+    var accessibilityLabel = "Volume"
+    var accessibilityValue: String?
     let onChange: (Double) -> Void
     var onEditingChanged: ((Bool) -> Void)?
 
     @State private var isDragging = false
 
-    private let knobSize: CGFloat = 16
+    private let knobSize: CGFloat = 15
+    private let trackHeight: CGFloat = 5
 
     var body: some View {
         GeometryReader { proxy in
             let usableWidth = max(1, proxy.size.width - knobSize)
-            let fraction = min(1, max(0, taper.position(forValue: value, in: range)))
-            let knobX = knobSize / 2 + usableWidth * CGFloat(fraction)
+            let x = { (position: Double) -> CGFloat in
+                knobSize / 2 + usableWidth * CGFloat(min(1, max(0, position)))
+            }
+            let knobX = x(taper.position(forValue: value, in: range))
+            // A fill from the bottom of the range starts flush with the track's end.
+            let originX = origin.map { x(taper.position(forValue: $0, in: range)) } ?? 0
+            let unityX = range.upperBound > 1 && origin == nil
+                ? x(taper.position(forValue: 1, in: range)) : .infinity
+            let midY = proxy.size.height / 2
 
-            ZStack(alignment: .leading) {
+            ZStack(alignment: .topLeading) {
                 Capsule()
-                    .fill(Color.primary.opacity(0.13))
-                    .frame(height: 4)
+                    .fill(Theme.track)
+                    .frame(height: trackHeight)
+                    .position(x: proxy.size.width / 2, y: midY)
+                    .frame(width: proxy.size.width)
 
-                Capsule()
-                    .fill(Theme.accent)
-                    .frame(width: max(0, knobX - knobSize / 2), height: 4)
+                fill(from: originX, to: knobX, unityX: unityX, midY: midY)
+                    .opacity(level == nil ? 1 : 0.38)
+
+                if let level, level > 0.001 {
+                    let levelX = min(knobX, x(taper.position(forValue: Double(level), in: range)))
+                    fill(from: originX, to: levelX, unityX: unityX, midY: midY)
+                        .animation(.linear(duration: 0.08), value: levelX)
+                }
 
                 Circle()
                     .fill(Color.white)
-                    .overlay(Circle().stroke(Color.black.opacity(0.12), lineWidth: 0.5))
-                    .shadow(color: .black.opacity(0.3), radius: 1.5, y: 1)
+                    .overlay(Circle().strokeBorder(Color.black.opacity(0.10), lineWidth: 0.5))
+                    .shadow(color: .black.opacity(isDragging ? 0.35 : 0.25), radius: isDragging ? 3 : 1.5, y: 1)
                     .frame(width: knobSize, height: knobSize)
-                    .position(x: knobX, y: proxy.size.height / 2)
+                    .scaleEffect(isDragging ? 1.1 : 1)
+                    .animation(.easeOut(duration: 0.12), value: isDragging)
+                    .position(x: knobX, y: midY)
             }
-            .frame(maxHeight: .infinity)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
@@ -193,10 +189,9 @@ struct StudioSlider: View {
                             isDragging = true
                             onEditingChanged?(true)
                         }
-                        let position = min(CGFloat(1), max(CGFloat(0),
-                            (gesture.location.x - knobSize / 2) / usableWidth
-                        ))
-                        onChange(taper.value(atPosition: Double(position), in: range))
+                        let position = (gesture.location.x - knobSize / 2) / usableWidth
+                        let clamped = Double(min(1, max(0, position)))
+                        onChange(taper.value(atPosition: clamped, in: range))
                     }
                     .onEnded { _ in
                         guard !isDisabled else { return }
@@ -205,10 +200,11 @@ struct StudioSlider: View {
                     }
             )
         }
-        .frame(height: 20)
-        .opacity(isDisabled ? 0.45 : 1)
-        .accessibilityLabel("Volume")
-        .accessibilityValue("\(Int((value * 100).rounded())) percent")
+        .frame(height: 22)
+        .opacity(isDisabled ? 0.4 : 1)
+        .accessibilityElement()
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue(accessibilityValue ?? "\(Int((value * 100).rounded())) percent")
         .accessibilityAdjustableAction { direction in
             guard !isDisabled else { return }
             // Stepping in position space keeps the increments even under a taper.
@@ -221,221 +217,214 @@ struct StudioSlider: View {
             }
         }
     }
+
+    /// The filled span of the track, accent up to unity and amber beyond it.
+    @ViewBuilder
+    private func fill(from start: CGFloat, to end: CGFloat, unityX: CGFloat, midY: CGFloat) -> some View {
+        let low = min(start, end), high = max(start, end)
+        let accentEnd = min(high, unityX)
+        ZStack(alignment: .topLeading) {
+            if accentEnd > low {
+                segment(from: low, to: accentEnd, midY: midY, color: Theme.accent)
+            }
+            if high > unityX {
+                segment(from: unityX, to: high, midY: midY, color: Theme.boost)
+            }
+        }
+    }
+
+    private func segment(from start: CGFloat, to end: CGFloat, midY: CGFloat, color: Color) -> some View {
+        Capsule()
+            .fill(color)
+            .frame(width: max(trackHeight, end - start), height: trackHeight)
+            .position(x: (start + end) / 2, y: midY)
+    }
 }
 
-/// The boost button: round, with a double up arrow. SF Symbols has no dependable
-/// "double chevron up", so two are stacked.
+// MARK: - Row controls
+
+/// Lets gain go past 100%. Amber when on, matching the boosted part of the fader.
 struct BoostButton: View {
     let isOn: Bool
     let action: () -> Void
 
+    @State private var isHovering = false
+
     var body: some View {
         Button(action: action) {
-            VStack(spacing: -2.5) {
-                Image(systemName: "chevron.compact.up")
-                Image(systemName: "chevron.compact.up")
-            }
-            .font(.system(size: 11, weight: .bold))
-            .foregroundStyle(isOn ? Color.white : .secondary)
-            .frame(width: Layout.boostWidth, height: Layout.boostWidth)
-            .background(Circle().fill(isOn ? Theme.accent : Theme.controlBackground))
+            Image(systemName: "chevron.up.2")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(isOn ? Color.black.opacity(0.75) : Color.secondary)
+                .frame(width: Layout.boostWidth, height: Layout.boostWidth)
+                .background(
+                    Circle().fill(isOn ? Theme.boost : (isHovering ? Theme.controlFill : .clear))
+                )
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .help(isOn ? "Boost enabled — 500% ceiling" : "Enable boost (up to 500%)")
+        .onHover { isHovering = $0 }
+        .help(isOn ? "Boost is on: volume goes up to 500%" : "Boost: let the volume go up to 500%")
+        .accessibilityLabel("Boost")
+        .accessibilityValue(isOn ? "On" : "Off")
     }
 }
 
-/// The round chevron that opens and closes sections and row details.
+/// Opens and closes a row's detail panel or a section.
 struct DisclosureChevron: View {
     let isExpanded: Bool
-    var diameter: CGFloat = 28
+    var size: CGFloat = Layout.chevronWidth
+    var help: String?
     let action: () -> Void
+
+    @State private var isHovering = false
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "chevron.down")
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(.secondary)
-                .rotationEffect(.degrees(isExpanded ? 0 : -90))
-                .frame(width: diameter, height: diameter)
-                .background(Circle().fill(Theme.controlBackground))
+            Image(systemName: "chevron.right")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(isExpanded ? .primary : .secondary)
+                .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                .frame(width: size, height: size)
+                .background(
+                    Circle().fill(isExpanded || isHovering ? Theme.controlFill : .clear)
+                )
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
-    }
-}
-
-struct FavoriteStar: View {
-    let isFavorite: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: isFavorite ? "star.fill" : "star")
-                .font(.system(size: 13))
-                .foregroundStyle(isFavorite ? Theme.accent : Color.secondary.opacity(0.45))
-                .frame(width: Layout.starWidth, height: 20)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help(isFavorite ? "Remove from Favorites" : "Add to Favorites — keep it listed while closed")
+        .onHover { isHovering = $0 }
+        .help(help ?? (isExpanded ? "Hide details" : "Show details"))
+        .accessibilityLabel(isExpanded ? "Hide details" : "Show details")
     }
 }
 
 struct MuteButton: View {
     let isMuted: Bool
     var symbol: String = "speaker.wave.2.fill"
+    var mutedSymbol: String = "speaker.slash.fill"
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: isMuted ? "speaker.slash.fill" : symbol)
-                .font(.system(size: 14))
-                .foregroundStyle(isMuted ? Color.red : .secondary)
-                .frame(width: Layout.muteWidth, height: 20)
+            Image(systemName: isMuted ? mutedSymbol : symbol)
+                .font(.system(size: 13))
+                .foregroundStyle(isMuted ? Theme.muted : .secondary)
+                .frame(width: Layout.muteWidth, height: 22)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .help(isMuted ? "Unmute" : "Mute")
+        .accessibilityLabel(isMuted ? "Unmute" : "Mute")
     }
 }
 
-/// The section name and the column headers above it, on one line.
-struct ColumnHeader: View {
+/// The small line under a row's name that shows, and changes, where its sound
+/// goes.
+struct RouteMenu: View {
     let title: String
-    let deviceColumnTitle: String
-    let isExpanded: Bool
-    var showsBoost = true
-    let toggle: () -> Void
+    var symbol: String?
+    /// Accent colour when the row is sent somewhere other than the default.
+    var isHighlighted = false
+    let accessibilityLabel: String
+    let entries: () -> [MenuEntry]
 
     var body: some View {
-        HStack(spacing: Layout.rowSpacing) {
-            HStack(spacing: 8) {
-                DisclosureChevron(isExpanded: isExpanded, action: toggle)
-                Text(title)
-                    .font(Typography.sectionTitle)
-                    .foregroundStyle(.primary)
-                Spacer(minLength: 0)
-            }
-            .frame(width: Layout.leadingBlockWidth, alignment: .leading)
-
-            // The flexible area is the exact counterpart of the row's
-            // mute + slider + percentage block.
-            columnLabel("Volume").frame(maxWidth: .infinity)
-            if showsBoost {
-                columnLabel("Boost").frame(width: Layout.boostColumnWidth)
-            } else {
-                Color.clear.frame(width: Layout.boostColumnWidth, height: 1)
-            }
-            columnLabel(deviceColumnTitle).frame(width: Layout.deviceWidth)
-            columnLabel("FX").frame(width: Layout.fxWidth)
-        }
-        .padding(.horizontal, Layout.contentInset)
-        .padding(.vertical, 8)
-    }
-
-    private func columnLabel(_ text: String) -> some View {
-        Text(text)
-            .font(Typography.columnLabel)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-    }
-}
-
-/// The device picker inside a row.
-struct DeviceMenu: View {
-    let devices: [AudioDevice]
-    let selectedUID: String?
-    /// Application rows offer a "follow the system" entry; system rows do not.
-    let allowsSystemDefault: Bool
-    let systemDefaultLabel: String
-    let onSelect: (String?) -> Void
-
-    private var selectedDevice: AudioDevice? {
-        devices.first { $0.uid == selectedUID }
-    }
-
-    private var label: String {
-        selectedDevice?.name ?? systemDefaultLabel
-    }
-
-    private var symbol: String {
-        selectedDevice?.symbolName ?? (allowsSystemDefault
-            ? "arrow.triangle.2.circlepath"
-            : "hifispeaker.fill")
-    }
-
-    var body: some View {
-        Menu {
-            if allowsSystemDefault {
-                Button { onSelect(nil) } label: {
-                    Label(systemDefaultLabel, systemImage: "arrow.triangle.2.circlepath")
-                }
-            }
-            ForEach(devices) { device in
-                Button { onSelect(device.uid) } label: {
-                    Label(device.name, systemImage: device.symbolName)
-                }
-            }
-        } label: {
-            Color.clear
-                .frame(width: Layout.deviceWidth, height: 34)
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .frame(width: Layout.deviceWidth, height: 34)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Theme.controlBackground)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Theme.controlBorder, lineWidth: 1)
-        )
-        .overlay {
-            ZStack {
-                HStack(spacing: 8) {
+        PopUpMenu(accessibilityLabel: accessibilityLabel, help: "Choose where the sound plays", entries: entries) { hover in
+            HStack(spacing: 4) {
+                if let symbol {
                     Image(systemName: symbol)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Theme.accent)
-                        .frame(width: 18)
-                    Text(label)
-                        .font(.system(size: label.count > 18 ? 12 : 13, weight: .medium))
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
-                        .truncationMode(.middle)
-                        .layoutPriority(1)
+                        .font(.system(size: 9, weight: .semibold))
                 }
-                .padding(.leading, 10)
-                .padding(.trailing, 26)
-                .frame(width: Layout.deviceWidth)
-
-                HStack {
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 8)
+                Text(title)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 7, weight: .bold))
+                    .opacity(hover ? 1 : 0.6)
             }
-            .allowsHitTesting(false)
+            .font(Typography.rowDetail)
+            .foregroundStyle(isHighlighted ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1.5)
+            .background(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(hover ? Theme.controlFill : .clear)
+            )
+            .padding(.horizontal, -5)
+            .fixedSize(horizontal: true, vertical: false)
         }
     }
 }
 
-/// The shared ground for rows: hover highlight and consistent padding.
+/// A compact pill used for choices inside detail panels.
+struct PillMenu: View {
+    let title: String
+    let accessibilityLabel: String
+    let entries: () -> [MenuEntry]
+
+    var body: some View {
+        PopUpMenu(accessibilityLabel: accessibilityLabel, entries: entries) { hover in
+            HStack(spacing: 6) {
+                Text(title).lineLimit(1)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(.secondary)
+            }
+            .font(.system(size: 12, weight: .medium))
+            .padding(.horizontal, 10)
+            .frame(height: 24)
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(hover ? Theme.controlFillHover : Theme.controlFill)
+            )
+            .fixedSize()
+        }
+    }
+}
+
+/// A round icon button with a quiet hover state.
+struct IconButton: View {
+    let symbol: String
+    let help: String
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            icon(symbol, hover: isHovering)
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+        .help(help)
+        .accessibilityLabel(help)
+    }
+}
+
+/// The look of `IconButton`, shared with icon-sized pop-up menus.
+func icon(_ symbol: String, hover: Bool) -> some View {
+    Image(systemName: symbol)
+        .font(.system(size: 13, weight: .medium))
+        .foregroundStyle(.secondary)
+        .frame(width: 26, height: 26)
+        .background(Circle().fill(hover ? Theme.controlFill : .clear))
+        .contentShape(Circle())
+}
+
+// MARK: - Surfaces
+
+/// Hover highlight and padding shared by every row.
 struct RowBackground: ViewModifier {
     let isHovering: Bool
 
     func body(content: Content) -> some View {
         content
-            .padding(.horizontal, Layout.rowInnerPadding)
+            .padding(.horizontal, Layout.rowHorizontalPadding)
             .padding(.vertical, Layout.rowVerticalPadding)
             .background(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(isHovering ? Theme.rowHighlight : .clear)
             )
-            .padding(.horizontal, Layout.rowOuterPadding)
+            .padding(.horizontal, 4)
     }
 }
 
@@ -444,38 +433,69 @@ extension View {
         modifier(RowBackground(isHovering: isHovering))
     }
 
-    func sectionSurface() -> some View {
+    /// The rounded group that holds a section's rows.
+    func groupSurface() -> some View {
         padding(.vertical, 4)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Theme.sectionBackground)
+                RoundedRectangle(cornerRadius: Layout.groupRadius, style: .continuous)
+                    .fill(Theme.groupFill)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(Theme.sectionBorder, lineWidth: 1)
+                RoundedRectangle(cornerRadius: Layout.groupRadius, style: .continuous)
+                    .strokeBorder(Theme.groupStroke, lineWidth: 0.5)
             )
-            .padding(.horizontal, Layout.cardInset)
     }
 }
 
-/// The detail section the FX button opens.
+/// The panel a row's chevron opens, set in under the row.
 struct DetailPanel<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) { content }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+        VStack(alignment: .leading, spacing: 14) { content }
+            .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    .fill(Theme.detailBackground)
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.primary.opacity(0.04))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    .stroke(Theme.controlBorder, lineWidth: 1)
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(Theme.hairline, lineWidth: 0.5)
             )
-            .padding(.horizontal, Layout.rowOuterPadding + Layout.rowInnerPadding)
-            .padding(.bottom, 4)
+            .padding(.leading, 4 + Layout.rowHorizontalPadding + Layout.iconSize + Layout.columnSpacing)
+            .padding(.trailing, 4 + Layout.rowHorizontalPadding)
+            .padding(.bottom, 8)
+            .transition(.opacity.combined(with: .move(edge: .top)))
     }
+}
+
+/// A labelled line inside a detail panel.
+struct DetailRow<Content: View>: View {
+    let label: String
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(label)
+                .font(Typography.detailLabel)
+                .foregroundStyle(.secondary)
+                .frame(width: 84, alignment: .leading)
+            content
+        }
+    }
+}
+
+/// The panel background: the system popover material in the menu bar, a solid
+/// stand-in where there is nothing behind the window to blur.
+struct PanelBackground: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .popover
+        view.blendingMode = .behindWindow
+        view.state = .active
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
 }

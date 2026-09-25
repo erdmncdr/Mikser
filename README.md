@@ -73,10 +73,10 @@ new helper appears, the tap is rebuilt automatically.
 - Per-application **balance**, applied as channel gain inside the IOProc
 - Per-application **ten-band equalizer** with eight presets
 - Per-application output device routing
-- Per-application peak level meters
+- Per-application level meters, built into the volume fader
 - Favourites: applications stay in the list while closed, with their settings ready
 - Hide applications from the panel without interrupting their saved audio settings
-- System output / input / sound effects rows, each with its own device selector
+- System output / input / sound effects rows, each with its own device menu
 - Sample rate control for the output device
 - Collapsible sections and row details, with the state remembered
 - A custom menu bar mark with a live four-step level indicator
@@ -129,11 +129,25 @@ quarantined.
 
 ## Interface
 
-The panel has two sections — **System** and **Applications** — each inside a card
-with column headers. A row is one line: star · meter · icon · name · mute · slider ·
-percentage · boost · device · FX.
+The panel has two groups, **System** and **Applications**. Every row has the same
+shape: icon · name, with the output device beneath it · mute · fader · percentage ·
+boost · details. There are no column headers; each control explains itself on hover.
 
-The System section holds three rows:
+- **The device** is the small line under a row's name. Click it to choose where that
+  row's sound goes. Application rows follow the system output until you pick a
+  device; a routed row shows its device in the accent colour.
+- **The fader is also the level meter.** For an application Mikser is processing, the
+  fill up to the knob is dim and lights up as far as the signal reaches, so a playing
+  application visibly pulses. Past 100% the fill turns amber.
+- **Boost** (the double chevron) lets the fader go to 500%. It turns amber when on,
+  matching the boosted part of the fader.
+- **Details** (the chevron at the end of the row) opens sample rate on the output row,
+  and balance plus the equalizer on application rows.
+- **Favourites** keep an application listed while it is silent. The star beside the
+  name is shown for favourites and offered on hover for everything else. **Add** in
+  the Applications header adds any application, running or not.
+
+The System group holds three rows:
 
 | Row | What it controls |
 | --- | --- |
@@ -141,19 +155,25 @@ The System section holds three rows:
 | Input | Level and mute for the default input (`kAudioObjectPropertyScopeInput`) |
 | Sound Effects | Alert volume and `kAudioHardwarePropertyDefaultSystemOutputDevice` |
 
-The chevron in the **FX** column opens a detail section beneath the row: sample rate
-on the output row, balance and the equalizer on application rows.
-
 Right-click an application and choose **Hide from List** to remove it from the panel.
-Hidden applications can be restored from **Settings → Hidden Applications**.
+Hidden applications come back from the **hidden** menu under the list, or from the
+settings menu (•••) in the header.
+
+### Pop-up menus
+
+Every menu in the panel (devices, settings, presets, sample rate) goes through
+`PopUpMenu`, which covers its SwiftUI label with a small AppKit view that opens an
+`NSMenu` on click. SwiftUI's `Menu` is not used: with `.borderlessButton` it renders
+through an `NSPopUpButton` that sizes its hit area to the label's text and image, and
+a 34pt device pill turned out to respond only in a 14pt strip through its middle.
+`--preview --click-test` clicks every menu control near each edge and in its centre
+and fails if any click does not open a menu.
 
 ### Metrics
 
-The panel is 760pt wide, the row pitch 50pt (a 30pt meter plus 2×10pt padding), and
-body text 14pt. These are not arbitrary: a tighter layout (11-12pt text, 32pt rows) was
-tried first and looked cheap. Every measurement lives in `Layout` and every font in
-`Typography`; the header row uses the same constants as the rows, so changing a
-column width in one place keeps the headers aligned.
+The panel is 640pt wide on the system popover material, rows are 46pt (a two-line
+name block plus 2×7pt padding), and names are 13pt. Every measurement lives in
+`Layout` and every font in `Typography`; the fader is the only flexible column.
 
 ### Menu bar
 
@@ -184,9 +204,10 @@ the blocks carry the information.
 | `Core/Equalizer.swift` | Ten-band equalizer DSP with lock-free coefficient publishing |
 | `Core/SystemAudio.swift` | Alert volume (absent from Core Audio; scripting interface) |
 | `Core/MixerEngine.swift` | State, persistence, tap lifecycle |
-| `UI/Theme.swift` | Colours, metrics, typography, shared row components |
+| `UI/Theme.swift` | Colours, metrics, typography, the fader and shared row components |
+| `UI/PopUpMenu.swift` | Full-size click targets that open AppKit menus |
 | `UI/MenuBarContentView.swift` | Panel layout and the system rows |
-| `UI/AppRowView.swift` | Application row and the FX detail section |
+| `UI/AppRowView.swift` | Application row and its detail section |
 | `UI/EqualizerView.swift` | Equalizer interface and the vertical fader |
 | `UI/MikserIcon.swift` | Menu bar mark and level indicator drawing |
 | `UI/PreviewRunner.swift` | Development mode that opens the panel in a window |
@@ -272,6 +293,12 @@ code signature, audio capture permission is granted to the same identity as the 
 ```bash
 # Open the menu bar panel in an ordinary window (layout work, screenshots)
 ./build/Mikser.app/Contents/MacOS/Mikser --preview
+
+# Render the panel to light.png and dark.png without screen recording permission
+./build/Mikser.app/Contents/MacOS/Mikser --preview --snapshot ~/Desktop
+
+# Check that every pop-up menu opens wherever its control is clicked
+./build/Mikser.app/Contents/MacOS/Mikser --preview --click-test
 
 # Write the five menu bar level states to PNGs, scaled up
 ./build/Mikser.app/Contents/MacOS/Mikser --dump-icons ~/Desktop

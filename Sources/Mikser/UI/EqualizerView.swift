@@ -37,7 +37,8 @@ struct VerticalFader: View {
 
                 Circle()
                     .fill(Color.white)
-                    .shadow(color: .black.opacity(0.35), radius: 1.5, y: 0.5)
+                    .overlay(Circle().strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5))
+                    .shadow(color: .black.opacity(0.3), radius: 1.5, y: 0.5)
                     .frame(width: knobSize, height: knobSize)
                     .position(x: centerX, y: knobY)
             }
@@ -69,53 +70,52 @@ struct EqualizerView: View {
 
     private var controlRow: some View {
         HStack(spacing: 10) {
-            Toggle("", isOn: Binding(
+            Text("Equalizer")
+                .font(Typography.detailLabel)
+                .foregroundStyle(.secondary)
+                .frame(width: 84, alignment: .leading)
+
+            Toggle("Equalizer", isOn: Binding(
                 get: { settings.isEnabled },
                 set: { engine.setEqualizerEnabled($0, for: appID) }
             ))
             .toggleStyle(.switch)
             .controlSize(.mini)
+            .tint(Theme.accent)
             .labelsHidden()
 
-            Text("10-Band Equalizer")
-                .font(Typography.detailLabel)
-                .foregroundStyle(settings.isEnabled ? .primary : .secondary)
+            PillMenu(
+                title: settings.preset?.displayName ?? "Custom",
+                accessibilityLabel: "Equalizer preset",
+                entries: presetEntries
+            )
 
             Spacer()
 
-            Text("Preset")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-
-            Picker("", selection: Binding<EqualizerPreset?>(
-                get: { settings.preset },
-                set: { if let preset = $0 { engine.applyEqualizerPreset(preset, for: appID) } }
-            )) {
-                // Nothing matches a preset once the user has moved bands by hand.
-                if settings.preset == nil {
-                    Text("Custom").tag(EqualizerPreset?.none)
-                }
-                ForEach(EqualizerPreset.allCases, id: \.self) { preset in
-                    Text(preset.displayName).tag(EqualizerPreset?.some(preset))
-                }
-            }
-            .pickerStyle(.menu)
-            .labelsHidden()
-            .frame(width: 140)
-
-            Button {
-                engine.applyEqualizerPreset(.flat, for: appID)
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 9, weight: .bold))
+            if !settings.isFlat {
+                Button("Reset") { engine.applyEqualizerPreset(.flat, for: appID) }
+                    .buttonStyle(.plain)
+                    .font(Typography.caption)
                     .foregroundStyle(.secondary)
-                    .frame(width: 20, height: 20)
-                    .background(Circle().fill(Theme.controlBackground))
+                    .help("Set every band back to 0 dB")
             }
-            .buttonStyle(.plain)
-            .disabled(settings.isFlat)
-            .help("Reset all bands")
         }
+    }
+
+    private func presetEntries() -> [MenuEntry] {
+        let current = settings.preset
+        var entries: [MenuEntry] = []
+        // Nothing matches a preset once the user has moved bands by hand.
+        if current == nil {
+            entries.append(.action("Custom", isChecked: true, isEnabled: false) {})
+            entries.append(.separator)
+        }
+        entries += EqualizerPreset.allCases.map { preset in
+            .action(preset.displayName, isChecked: preset == current) {
+                engine.applyEqualizerPreset(preset, for: appID)
+            }
+        }
+        return entries
     }
 
     private var faderRow: some View {
@@ -137,6 +137,7 @@ struct EqualizerView: View {
                         engine.setEqualizerGain(newValue, band: index, for: appID)
                     }
                     .frame(height: 96)
+                    .accessibilityLabel("\(EqualizerBands.label(for: frequency))Hz band")
 
                     Text(EqualizerBands.label(for: frequency))
                         .font(.system(size: 9))

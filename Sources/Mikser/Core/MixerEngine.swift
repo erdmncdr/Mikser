@@ -150,6 +150,10 @@ final class MixerEngine {
         taps.removeAll()
     }
 
+    func dismissError() {
+        lastError = nil
+    }
+
     func setMenuOpen(_ open: Bool) {
         guard !isPreview else { return }
         guard isMenuOpen != open else { return }

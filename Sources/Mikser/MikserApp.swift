@@ -114,20 +114,7 @@ final class UpdateController: NSObject, @preconcurrency SPUStandardUserDriverDel
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    /// Pulls Sparkle's window in front of the open menu bar panel.
-    ///
-    /// `MenuBarExtra`'s panel sits at `.popUpMenu` (level 101) and holds key status,
-    /// which leaves Sparkle's window at level 0 and never focused — buried, no matter
-    /// which application is active.
-    ///
-    /// Ordering the panel out directly does fix the layering, but it desyncs
-    /// `MenuBarExtra`'s own presented/dismissed state: SwiftUI keeps believing the
-    /// panel is open, so the next click on the status item does nothing and the panel
-    /// can never be reopened. Taking key status instead makes the panel close through
-    /// its normal resign-key path, which leaves that state intact.
-    ///
-    /// The window does not exist yet when the delegate fires, and modal alerts block
-    /// the main queue, so this is scheduled on the run loop in `.modalPanel` mode too.
+    /// Waits for Sparkle's window to exist, then raises it.
     private func raiseUpdateWindowWhenItAppears() {
         // The window does not exist yet when the delegate fires, and the appcast
         // fetch means it can be a moment away, so poll briefly instead of trying
